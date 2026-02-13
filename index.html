@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مصحح لوحة المفاتيح العربية | Arabic Keyboard Fixer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Traditional Arabic', Arial, sans-serif;
+            background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: #2d2d3d;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            padding: 30px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #4a90e2;
+            padding-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            color: #4a90e2;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #999;
+            font-size: 0.95em;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4ade80;
+            margin-left: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 15px;
+            border: 2px solid #4a4a5e;
+            border-radius: 8px;
+            background: #1e1e2e;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            font-size: 1em;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #4a90e2;
+        }
+
+        .char-count {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .suggestions-section {
+            background: #1e1e2e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            min-height: 100px;
+        }
+
+        .suggestions-title {
+            font-weight: 600;
+            color: #4a90e2;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .suggestion-item {
+            background: #2d2d3d;
+            border-right: 4px solid #4a90e2;
+            padding: 15px;
+            margin-bottom: 12px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .suggestion-text {
+            flex: 1;
+        }
+
+        .suggestion-type {
+            font-size: 0.8em;
+            color: #999;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .suggestion-content {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+            color: #4ade80;
+            word-break: break-all;
+            padding: 10px;
+            background: #1e1e2e;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+
+        .confidence {
+            font-size: 0.85em;
+            color: #999;
+        }
+
+        .suggestion-actions {
+            display: flex;
+            gap: 8px;
+            flex-direction: column;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .btn-fix {
+            background: #4ade80;
+            color: #1e1e2e;
+        }
+
+        .btn-fix:hover {
+            background: #22c55e;
+            transform: translateY(-2px);
+        }
+
+        .btn-copy {
+            background: #4a90e2;
+            color: white;
+        }
+
+        .btn-copy:hover {
+            background: #3b7bc8;
+            transform: translateY(-2px);
+        }
+
+        .btn-ignore {
+            background: #666;
+            color: #e0e0e0;
+        }
+
+        .btn-ignore:hover {
+            background: #777;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+            font-size: 0.95em;
+        }
+
+        .keyboard-info {
+            background: #4a4a5e;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #999;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #4a4a5e;
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .history {
+            background: #1e1e2e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .history-title {
+            font-weight: 600;
+            color: #4a90e2;
+            margin-bottom: 12px;
+        }
+
+        .history-item {
+            padding: 8px 12px;
+            background: #2d2d3d;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            color: #999;
+            border-left: 3px solid #4a90e2;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .history-item:hover {
+            background: #3d3d4d;
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 1.4em;
+            }
+
+            .suggestion-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .suggestion-actions {
+                flex-direction: row;
+                width: 100%;
+            }
+
+            button {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🔧 مصحح لوحة المفاتيح العربية <span class="status-indicator"></span></h1>
+            <p>اكتب أو الصق النص المخلوط واحصل على الإصلاح الفوري | ✅ تم تصحيح جداول التحويل</p>
+        </div>
+
+        <!-- Input Section -->
+        <div class="input-section">
+            <label for="textInput">أدخل النص المخلوط:</label>
+            <textarea 
+                id="textInput" 
+                placeholder="مثال: g]d la;gm td hg;jhfm fg,pm hglthjdp (هذا نص عربي على لوحة إنجليزية)"
+            ></textarea>
+            <div class="char-count">
+                عدد الأحرف: <span id="charCount">0</span>
+            </div>
+        </div>
+
+        <!-- Suggestions Section -->
+        <div class="suggestions-section">
+            <div class="suggestions-title">
+                💡 الاقتراحات والإصلاحات
+            </div>
+            <div id="suggestionsContainer">
+                <div class="empty-state">
+                    ابدأ بكتابة النص أو الصق محتوى مخلوط هنا...
+                </div>
+            </div>
+        </div>
+
+        <!-- Keyboard Info -->
+        <div class="keyboard-info">
+            ℹ️ <strong>معلومات مهمة:</strong> يتم دعم تخطيطات لوحة المفاتيح 101 و 102 العربية. التطبيق يكتشف تلقائياً نوع الخطأ ويقترح الإصلاحات.
+        </div>
+
+        <!-- History -->
+        <div class="history">
+            <div class="history-title">📝 السجل (آخر 5 إصلاحات)</div>
+            <div id="historyContainer">
+                <div class="empty-state">لا يوجد سجل حتى الآن</div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>تطبيق مصحح لوحة المفاتيح العربية v1.0 | يمكن تثبيتها كإضافة في Firefox/Chrome</p>
+        </div>
+    </div>
+
+    <script>
+        // Keyboard Mapping (QWERTY -> Arabic 101)
+        // QWERTY -> Arabic 101 (✅ تم التصحيح)
+        const qwertyToArabic101 = {
+            // الصف الأول: q w e r t y u i o p [ ]
+            'q': 'ض', 'w': 'ص', 'e': 'ث', 'r': 'ق', 't': 'ف', 'y': 'غ', 'u': 'ع', 'i': 'ه', 'o': 'خ', 'p': 'ح', '[': 'ج', ']': 'د',
+            // الصف الثاني: a s d f g h j k l ; '
+            // ✅ تصحيح: ' يجب أن يكون 'ط' وليس 'ل'
+            'a': 'ش', 's': 'س', 'd': 'ي', 'f': 'ب', 'g': 'ل', 'h': 'ا', 'j': 'ت', 'k': 'ن', 'l': 'م', ';': 'ك', "'": 'ط',
+            // الصف الثالث: z x c v b n m , . /
+            // ✅ تصحيحات: b=لا (كان ّ), n=ى (كان ة), m=ة (كان و), ,=و, .=ز (كان ظ), /=؟ (كان ط)
+            'z': 'ئ', 'x': 'ء', 'c': 'ؤ', 'v': 'ر', 'b': 'لا', 'n': 'ى', 'm': 'ة', ',': 'و', '.': 'ز', '/': '؟',
+            '`': 'ذ'
+        };
+
+        // QWERTY -> Arabic 102 (تخطيط عربي بديل)
+        const qwertyToArabic102 = {
+            'q': 'ف', 'w': 'ك', 'e': 'ج', 'r': 'د', 't': 'ش', 'y': 'غ', 'u': 'س', 'i': 'ا', 'o': 'ي', 'p': 'ب', '[': 'ص', ']': 'ض',
+            'a': 'ل', 's': 'م', 'd': 'ن', 'f': 'ت', 'g': 'ة', 'h': 'خ', 'j': 'ه', 'k': 'ع', 'l': 'ق', ';': 'ط', "'": 'و',
+            'z': 'ئ', 'x': 'ء', 'c': 'ؤ', 'v': 'ر', 'b': 'لا', 'n': 'ى', 'm': 'ز', ',': 'و', '.': 'ز', '/': '؟',
+            '`': 'ذ'
+        };
+
+        // Reverse mapping
+        const arabicToQwerty101 = {};
+        Object.entries(qwertyToArabic101).forEach(([key, value]) => {
+            arabicToQwerty101[value] = key;
+        });
+
+        // Arabic characters set
+        const arabicChars = new Set(Object.values(qwertyToArabic101));
+        const englishChars = /[a-zA-Z\[\]';,./]/;
+
+        const textInput = document.getElementById('textInput');
+        const suggestionsContainer = document.getElementById('suggestionsContainer');
+        const charCountSpan = document.getElementById('charCount');
+        const historyContainer = document.getElementById('historyContainer');
+        let history = [];
+
+        // Detect and fix wrong keyboard layout (محسّن لدعم تخطيطات متعددة)
+        function detectAndFix(text) {
+            if (!text.trim()) return null;
+
+            // Count Arabic and English chars
+            let arabicCount = 0, englishCount = 0;
+
+            for (let char of text.toLowerCase()) {
+                if (arabicChars.has(char)) arabicCount++;
+                else if (englishChars.test(char)) englishCount++;
+            }
+
+            const suggestions = [];
+
+            // If mostly English chars, suggest Arabic conversion
+            if (englishCount > arabicCount && englishCount > text.length * 0.5) {
+                // حاول Arabic 101 و Arabic 102
+                const arabic101 = convertToArabic(text, qwertyToArabic101);
+                const arabic102 = convertToArabic(text, qwertyToArabic102);
+                
+                const confidence = Math.round((englishCount / text.length) * 100);
+                suggestions.push({
+                    type: 'تحويل إلى عربي (101)',
+                    text: arabic101,
+                    confidence: confidence,
+                    original: text
+                });
+                suggestions.push({
+                    type: 'تحويل إلى عربي (102)',
+                    text: arabic102,
+                    confidence: confidence,
+                    original: text
+                });
+            }
+
+            // If mostly Arabic chars, suggest English conversion
+            if (arabicCount > englishCount && arabicCount > text.length * 0.5) {
+                const confidence = Math.round((arabicCount / text.length) * 100);
+                suggestions.push({
+                    type: 'تحويل إلى إنجليزي',
+                    text: potentialEnglish,
+                    confidence: confidence,
+                    original: text
+                });
+            }
+
+            return suggestions.length > 0 ? suggestions : null;
+        }
+
+        // دالة مساعدة للتحويل
+        function convertToArabic(text, mapping) {
+            let result = '';
+            for (let char of text.toLowerCase()) {
+                result += mapping[char] || char;
+            }
+            return result;
+        }
+
+        // Render suggestions
+        function renderSuggestions(suggestions) {
+            if (!suggestions || suggestions.length === 0) {
+                suggestionsContainer.innerHTML = '<div class="empty-state">لم يتم اكتشاف أخطاء لوحة مفاتيح</div>';
+                return;
+            }
+
+            suggestionsContainer.innerHTML = suggestions.map((s, i) => `
+                <div class="suggestion-item">
+                    <div class="suggestion-text">
+                        <div class="suggestion-type">${s.type}</div>
+                        <div class="suggestion-content">${s.text}</div>
+                        <div class="confidence">دقة الكشف: ${s.confidence}%</div>
+                    </div>
+                    <div class="suggestion-actions">
+                        <button class="btn-fix" onclick="applySuggestion(${i})">✓ تطبيق</button>
+                        <button class="btn-copy" onclick="copySuggestion('${s.text.replace(/'/g, "\\'")}')">📋 نسخ</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Apply suggestion
+        window.applySuggestion = function(index) {
+            const text = textInput.value.trim();
+            const suggestions = detectAndFix(text);
+            if (suggestions && suggestions[index]) {
+                const fixed = suggestions[index];
+                textInput.value = fixed.text;
+                addToHistory(text, fixed.text);
+                detectAndFix(fixed.text);
+                charCountSpan.textContent = fixed.text.length;
+            }
+        };
+
+        // Copy to clipboard
+        window.copySuggestion = function(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✓ تم النسخ إلى الحافظة');
+            });
+        };
+
+        // Add to history
+        function addToHistory(original, fixed) {
+            history.unshift({ original, fixed, time: new Date().toLocaleTimeString('ar-SA') });
+            if (history.length > 5) history.pop();
+            renderHistory();
+        }
+
+        // Render history
+        function renderHistory() {
+            if (history.length === 0) {
+                historyContainer.innerHTML = '<div class="empty-state">لا يوجد سجل حتى الآن</div>';
+                return;
+            }
+
+            historyContainer.innerHTML = history.map((item, i) => `
+                <div class="history-item" onclick="textInput.value='${item.fixed.replace(/'/g, "\\'")}'; detectInput()">
+                    <strong>${item.time}</strong> - ${item.fixed.substring(0, 50)}...
+                </div>
+            `).join('');
+        }
+
+        // Event listeners
+        textInput.addEventListener('input', function() {
+            charCountSpan.textContent = this.value.length;
+            const suggestions = detectAndFix(this.value);
+            renderSuggestions(suggestions);
+        });
+
+        // Paste detection
+        textInput.addEventListener('paste', function(e) {
+            e.preventDefault();
+            const text = (e.clipboardData || window.clipboardData).getData('text');
+            textInput.value = text;
+            charCountSpan.textContent = text.length;
+            const suggestions = detectAndFix(text);
+            renderSuggestions(suggestions);
+        });
+
+        function detectInput() {
+            const suggestions = detectAndFix(textInput.value);
+            renderSuggestions(suggestions);
+        }
+    </script>
+</body>
+</html>

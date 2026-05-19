@@ -394,8 +394,20 @@ button:focus-visible {
 }
 
 @media (max-width: 600px) {
+    .header {
+        padding-top: 0;
+    }
+
+    .header-actions {
+        position: static;
+        justify-content: flex-end;
+        margin-bottom: 14px;
+        gap: 8px;
+    }
+
     .header h1 {
         font-size: 1.4em;
+        word-wrap: break-word;
     }
 
     .suggestion-item {
@@ -408,9 +420,17 @@ button:focus-visible {
         width: 100%;
     }
 
-    button {
+    .suggestion-actions button {
         flex: 1;
         min-height: 44px;
+    }
+
+    .history-controls button {
+        min-height: 40px;
+    }
+
+    .icon-btn {
+        flex: 0 0 auto;
     }
 }
 

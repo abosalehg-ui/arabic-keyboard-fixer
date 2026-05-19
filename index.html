@@ -4,6 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>مصحح لوحة المفاتيح العربية | Arabic Keyboard Fixer</title>
+    <meta name="description" content="تطبيق ويب يصحّح النص المكتوب بتخطيط لوحة مفاتيح خاطئ بين العربية والإنجليزية — يعمل بالكامل في المتصفح، بدون إرسال بيانات.">
+    <meta name="keywords" content="عربي, لوحة مفاتيح, تحويل, Arabic, keyboard, fixer, qwerty, 101, 102">
+    <meta name="theme-color" content="#1e1e2e" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#eef2f8" media="(prefers-color-scheme: light)">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="مصحح لوحة المفاتيح العربية">
+    <meta property="og:description" content="تطبيق ويب يصحّح النص المكتوب بتخطيط لوحة مفاتيح خاطئ بين العربية والإنجليزية.">
+    <meta property="og:locale" content="ar_AR">
+    <meta property="og:url" content="https://abosalehg-ui.github.io/arabic-keyboard-fixer/">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="مصحح لوحة المفاتيح العربية">
+    <meta name="twitter:description" content="حوّل النص المكتوب بتخطيط لوحة مفاتيح خاطئ — عربي ↔ إنجليزي.">
+    <link rel="canonical" href="https://abosalehg-ui.github.io/arabic-keyboard-fixer/">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='52' font-size='52'%3E🔧%3C/text%3E%3C/svg%3E">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Arabic Keyboard Fixer",
+        "alternateName": "مصحح لوحة المفاتيح العربية",
+        "applicationCategory": "UtilityApplication",
+        "operatingSystem": "Any (Web)",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "url": "https://abosalehg-ui.github.io/arabic-keyboard-fixer/"
+    }
+    </script>
     <style>
         :root,
         [data-theme="dark"] {
@@ -871,6 +898,12 @@
 
         initTheme();
         renderHistory();
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js').catch(() => {});
+            });
+        }
     </script>
 </body>
 </html>

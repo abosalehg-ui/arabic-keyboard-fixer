@@ -24,36 +24,46 @@ const mappings = lines.slice(startMappings, endMappings).join('\n');
 const pureFns = lines.slice(startFns, endFns).join('\n');
 
 const results = [];
-function t(name, fn) {
+function record(name, fn) {
     try { results.push([name, fn()]); }
     catch (e) { results.push([name, false, e.message]); }
 }
 
-const code = mappings + '\n' + pureFns + `
-t('convertToArabic g]d -> لدي', () => convertToArabic('g]d', qwertyToArabic101) === 'لدي');
-t('convertToArabic la;gm -> مشكلة', () => convertToArabic('la;gm', qwertyToArabic101) === 'مشكلة');
-t('convertToArabic preserves spaces and punctuation', () =>
+// Stub the i18n `t()` helper so suggestion `type` strings are stable for assertions.
+const i18nStub = `
+const STUB_STRINGS = {
+    'suggestion.type.arabic101': 'Convert to Arabic (101)',
+    'suggestion.type.arabic102': 'Convert to Arabic (102)',
+    'suggestion.type.english': 'Convert to English'
+};
+function t(key) { return STUB_STRINGS[key] || key; }
+`;
+
+const code = i18nStub + '\n' + mappings + '\n' + pureFns + `
+record('convertToArabic g]d -> لدي', () => convertToArabic('g]d', qwertyToArabic101) === 'لدي');
+record('convertToArabic la;gm -> مشكلة', () => convertToArabic('la;gm', qwertyToArabic101) === 'مشكلة');
+record('convertToArabic preserves spaces and punctuation', () =>
     convertToArabic('g]d la;gm', qwertyToArabic101).includes(' '));
-t('convertToEnglish لدي -> g]d', () => convertToEnglish('لدي') === 'g]d');
-t('convertToEnglish round-trip via 101 keeps spaces', () =>
+record('convertToEnglish لدي -> g]d', () => convertToEnglish('لدي') === 'g]d');
+record('convertToEnglish round-trip via 101 keeps spaces', () =>
     convertToEnglish('لدي مشكلة').includes(' '));
-t('detectAndFix english input produces 101 suggestion', () => {
+record('detectAndFix english input produces 101 suggestion', () => {
     const r = detectAndFix('g]d la;gm');
     return r && r.some(s => s.type.includes('101'));
 });
-t('detectAndFix arabic input produces english suggestion', () => {
+record('detectAndFix arabic input produces english suggestion', () => {
     const r = detectAndFix('لدي مشكلة');
-    return r && r.some(s => s.type.includes('إنجليزي'));
+    return r && r.some(s => s.type.includes('English'));
 });
-t('detectAndFix empty returns null', () =>
+record('detectAndFix empty returns null', () =>
     detectAndFix('') === null && detectAndFix('   ') === null);
-t('detectAndFix mostly digits returns null', () =>
+record('detectAndFix mostly digits returns null', () =>
     detectAndFix('123 456 789') === null);
-t('scoreArabicness for pure arabic > 50', () =>
+record('scoreArabicness for pure arabic > 50', () =>
     scoreArabicness('لدي مشكلة كبيرة') > 50);
-t('scoreArabicness for english is 0', () =>
+record('scoreArabicness for english is 0', () =>
     scoreArabicness('hello world') === 0);
-t('arabic suggestions are sorted by confidence desc', () => {
+record('arabic suggestions are sorted by confidence desc', () => {
     const r = detectAndFix('g]d la;gm');
     if (!r || r.length < 2) return true;
     for (let i = 1; i < r.length; i++) {

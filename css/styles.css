@@ -111,6 +111,13 @@ body {
     outline-offset: 2px;
 }
 
+.lang-btn {
+    font-size: 0.85em;
+    padding: 8px 12px;
+    font-weight: 600;
+    min-width: auto;
+}
+
 .status-indicator {
     display: inline-block;
     width: 12px;

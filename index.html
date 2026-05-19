@@ -34,65 +34,53 @@
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <a href="#mainContent" class="skip-link">تخطي إلى المحتوى الرئيسي</a>
+    <a href="#mainContent" class="skip-link" id="skipLink">تخطي إلى المحتوى الرئيسي</a>
     <main class="container" id="mainContent">
         <div class="header">
             <div class="header-actions">
-                <button id="swapDirection" class="icon-btn" type="button" aria-label="فرض التحويل في الاتجاه المعاكس" title="تبديل الاتجاه يدوياً">⇄</button>
-                <button id="themeToggle" class="icon-btn" type="button" aria-label="تبديل المظهر (فاتح/داكن)" title="تبديل المظهر">🌙</button>
+                <button id="languageToggle" class="icon-btn lang-btn" type="button">English</button>
+                <button id="swapDirection" class="icon-btn" type="button">⇄</button>
+                <button id="themeToggle" class="icon-btn" type="button">🌙</button>
             </div>
-            <h1>🔧 مصحح لوحة المفاتيح العربية <span class="status-indicator" aria-hidden="true"></span></h1>
-            <p>اكتب أو الصق النص المخلوط واحصل على الإصلاح الفوري</p>
+            <h1><span id="headerTitle">🔧 مصحح لوحة المفاتيح العربية</span> <span class="status-indicator" aria-hidden="true"></span></h1>
+            <p id="headerSubtitle">اكتب أو الصق النص المخلوط واحصل على الإصلاح الفوري</p>
         </div>
 
         <div class="input-section">
-            <label for="textInput">أدخل النص المخلوط:</label>
+            <label for="textInput" id="inputLabel">أدخل النص المخلوط:</label>
             <textarea
                 id="textInput"
-                placeholder="مثال: g]d la;gm td hg;jhfm fg,pm hglthjdp (هذا نص عربي على لوحة إنجليزية)"
                 aria-describedby="charCountLabel shortcutsHint"
                 aria-keyshortcuts="Control+Enter Control+L Control+Shift+C"
                 spellcheck="false"
                 autocomplete="off"
             ></textarea>
             <div class="char-count" id="charCountLabel">
-                عدد الأحرف: <span id="charCount">0</span>
+                <span id="charCountLabelText">عدد الأحرف:</span> <span id="charCount">0</span>
             </div>
-            <div class="shortcuts-hint" id="shortcutsHint">
-                <kbd>Ctrl</kbd>+<kbd>Enter</kbd> apply first suggestion · <kbd>Ctrl</kbd>+<kbd>L</kbd> clear input · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> copy first suggestion
-            </div>
+            <div class="shortcuts-hint" id="shortcutsHint"></div>
         </div>
 
-        <div class="suggestions-section" role="region" aria-live="polite" aria-label="الاقتراحات">
-            <div class="suggestions-title">
-                💡 الاقتراحات والإصلاحات
-            </div>
-            <div id="suggestionsContainer">
-                <div class="empty-state">
-                    ابدأ بكتابة النص أو الصق محتوى مخلوط هنا...
-                </div>
-            </div>
+        <div class="suggestions-section" role="region" aria-live="polite" id="suggestionsRegion">
+            <div class="suggestions-title" id="suggestionsTitle">💡 الاقتراحات والإصلاحات</div>
+            <div id="suggestionsContainer"></div>
         </div>
 
-        <div class="keyboard-info">
-            ℹ️ <strong>معلومات مهمة:</strong> يتم دعم تخطيطات لوحة المفاتيح 101 و 102 العربية. التطبيق يكتشف تلقائياً نوع الخطأ ويقترح الإصلاحات.
-        </div>
+        <div class="keyboard-info" id="keyboardInfo"></div>
 
-        <div class="history" aria-label="سجل التصحيحات">
+        <div class="history" id="historyRegion">
             <div class="history-header">
-                <div class="history-title">📝 السجل</div>
+                <div class="history-title" id="historyTitle">📝 السجل</div>
                 <div class="history-controls">
-                    <button id="exportHistoryBtn" class="btn-secondary" type="button" aria-label="تصدير السجل JSON">⤓ تصدير</button>
-                    <button id="clearHistoryBtn" class="btn-secondary" type="button" aria-label="مسح كل السجل">🗑️ مسح</button>
+                    <button id="exportHistoryBtn" class="btn-secondary" type="button">⤓ تصدير</button>
+                    <button id="clearHistoryBtn" class="btn-secondary" type="button">🗑️ مسح</button>
                 </div>
             </div>
-            <div id="historyContainer">
-                <div class="empty-state">لا يوجد سجل حتى الآن</div>
-            </div>
+            <div id="historyContainer"></div>
         </div>
 
         <div class="footer">
-            <p>تطبيق مصحح لوحة المفاتيح العربية v1.1 | يعمل بالكامل في المتصفح، بدون إرسال بيانات</p>
+            <p id="footerText">تطبيق مصحح لوحة المفاتيح العربية v1.1</p>
         </div>
     </main>
 

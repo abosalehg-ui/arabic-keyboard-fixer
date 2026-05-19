@@ -1,10 +1,12 @@
-const CACHE = 'akf-v2';
+const CACHE = 'akf-v3';
 const ASSETS = [
     './',
     './index.html',
     './css/styles.css',
     './js/app.js',
-    './manifest.webmanifest'
+    './manifest.webmanifest',
+    './locales/ar.json',
+    './locales/en.json'
 ];
 
 self.addEventListener('install', (event) => {

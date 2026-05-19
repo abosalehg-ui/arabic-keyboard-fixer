@@ -28,11 +28,83 @@ const themeToggleBtn = document.getElementById('themeToggle');
 const swapDirectionBtn = document.getElementById('swapDirection');
 const clearHistoryBtn = document.getElementById('clearHistoryBtn');
 const exportHistoryBtn = document.getElementById('exportHistoryBtn');
+const languageToggleBtn = document.getElementById('languageToggle');
 
 const STORAGE_HISTORY = 'akf_history';
 const STORAGE_THEME = 'akf_theme';
+const STORAGE_LOCALE = 'akf_locale';
 const MAX_HISTORY = 20;
 const MAX_INPUT_LENGTH = 50000;
+
+const SUPPORTED_LOCALES = ['ar', 'en'];
+let currentLocale = 'ar';
+let strings = {};
+
+/**
+ * Look up a localized string by key, with optional template substitution.
+ * Falls back to the key itself if the translation is missing.
+ * @param {string} key
+ * @param {Record<string, string|number>} [vars]
+ */
+function t(key, vars) {
+    let value = strings[key] != null ? strings[key] : key;
+    if (vars) {
+        for (const [name, replacement] of Object.entries(vars)) {
+            value = value.split('{' + name + '}').join(String(replacement));
+        }
+    }
+    return value;
+}
+
+async function loadLocale(locale) {
+    const safe = SUPPORTED_LOCALES.includes(locale) ? locale : 'ar';
+    const res = await fetch(`locales/${safe}.json`);
+    if (!res.ok) throw new Error('locale fetch failed');
+    strings = await res.json();
+    currentLocale = safe;
+    document.documentElement.setAttribute('lang', strings.lang || safe);
+    document.documentElement.setAttribute('dir', strings.dir || (safe === 'ar' ? 'rtl' : 'ltr'));
+    applyStaticStrings();
+}
+
+function applyStaticStrings() {
+    document.title = (strings.title || 'Arabic Keyboard Fixer').replace(/[🔧]\s?/, '') + ' | Arabic Keyboard Fixer';
+    const setText = (id, key) => { const n = document.getElementById(id); if (n) n.textContent = t(key); };
+    const setHtml = (id, key) => { const n = document.getElementById(id); if (n) n.innerHTML = t(key); };
+    const setAttr = (id, attr, key) => { const n = document.getElementById(id); if (n) n.setAttribute(attr, t(key)); };
+
+    setText('headerTitle', 'title');
+    setText('headerSubtitle', 'subtitle');
+    setText('inputLabel', 'labels.input');
+    setText('charCountLabelText', 'labels.charCount');
+    setHtml('keyboardInfo', 'labels.keyboardInfo');
+    setText('footerText', 'labels.footer');
+    setText('suggestionsTitle', 'labels.suggestions');
+    setText('historyTitle', 'labels.history');
+    setText('skipLink', 'buttons.skipToMain');
+    setText('exportHistoryBtn', 'buttons.export');
+    setText('clearHistoryBtn', 'buttons.clear');
+    setHtml('shortcutsHint', 'shortcutsHint');
+
+    const ta = document.getElementById('textInput');
+    if (ta) ta.setAttribute('placeholder', t('placeholder.input'));
+
+    setAttr('swapDirection', 'aria-label', 'aria.swap');
+    setAttr('swapDirection', 'title', 'buttons.swap');
+    setAttr('themeToggle', 'title', 'buttons.theme');
+    setAttr('exportHistoryBtn', 'aria-label', 'aria.export');
+    setAttr('clearHistoryBtn', 'aria-label', 'aria.clear');
+
+    if (languageToggleBtn) {
+        languageToggleBtn.textContent = t('buttons.language');
+        languageToggleBtn.setAttribute('aria-label', t('buttons.language'));
+    }
+
+    const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+    if (themeToggleBtn) {
+        themeToggleBtn.setAttribute('aria-label', t(theme === 'dark' ? 'aria.theme.toLight' : 'aria.theme.toDark'));
+    }
+}
 
 let history = loadHistory();
 
@@ -59,7 +131,7 @@ function saveHistory() {
 function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     themeToggleBtn.textContent = theme === 'dark' ? '☀️' : '🌙';
-    themeToggleBtn.setAttribute('aria-label', theme === 'dark' ? 'تبديل إلى المظهر الفاتح' : 'تبديل إلى المظهر الداكن');
+    themeToggleBtn.setAttribute('aria-label', t(theme === 'dark' ? 'aria.theme.toLight' : 'aria.theme.toDark'));
 }
 
 function initTheme() {
@@ -83,8 +155,22 @@ clearHistoryBtn.addEventListener('click', () => {
     history = [];
     saveHistory();
     renderHistory();
-    showToast('🗑️ تم مسح السجل');
+    showToast(t('messages.cleared'));
 });
+
+if (languageToggleBtn) {
+    languageToggleBtn.addEventListener('click', async () => {
+        const next = currentLocale === 'ar' ? 'en' : 'ar';
+        try {
+            await loadLocale(next);
+            localStorage.setItem(STORAGE_LOCALE, next);
+            renderHistory();
+            renderSuggestions(detectAndFix(textInput.value));
+        } catch (err) {
+            console.error('Locale switch failed:', err);
+        }
+    });
+}
 
 /**
  * Force-convert input in the opposite direction when auto-detection
@@ -93,7 +179,7 @@ clearHistoryBtn.addEventListener('click', () => {
 swapDirectionBtn.addEventListener('click', () => {
     const text = textInput.value.trim();
     if (!text) {
-        showToast('لا يوجد نص للتبديل');
+        showToast(t('messages.swapEmpty'));
         return;
     }
     let arabicCount = 0;
@@ -105,12 +191,12 @@ swapDirectionBtn.addEventListener('click', () => {
     textInput.value = converted;
     addToHistory(text, converted);
     detectInput();
-    showToast(isArabicMajority ? '⇄ حُوّل إلى إنجليزي' : '⇄ حُوّل إلى عربي');
+    showToast(t(isArabicMajority ? 'messages.swappedToEn' : 'messages.swappedToAr'));
 });
 
 exportHistoryBtn.addEventListener('click', () => {
     if (history.length === 0) {
-        showToast('لا يوجد سجل للتصدير');
+        showToast(t('messages.exportEmpty'));
         return;
     }
     const blob = new Blob([JSON.stringify(history, null, 2)], { type: 'application/json' });
@@ -208,14 +294,14 @@ function detectAndFix(text) {
         const arabic102 = convertToArabic(text, qwertyToArabic102);
 
         suggestions.push({
-            type: 'تحويل إلى عربي (101)',
+            type: t('suggestion.type.arabic101'),
             text: arabic101,
             confidence: scoreArabicness(arabic101),
             original: text
         });
         if (arabic102 !== arabic101) {
             suggestions.push({
-                type: 'تحويل إلى عربي (102)',
+                type: t('suggestion.type.arabic102'),
                 text: arabic102,
                 confidence: scoreArabicness(arabic102),
                 original: text
@@ -227,7 +313,7 @@ function detectAndFix(text) {
     if (arabicCount > englishCount && arabicCount > text.length * 0.5) {
         const english = convertToEnglish(text);
         suggestions.push({
-            type: 'تحويل إلى إنجليزي',
+            type: t('suggestion.type.english'),
             text: english,
             confidence: Math.round((arabicCount / totalCount) * 100),
             original: text
@@ -277,21 +363,21 @@ function buildSuggestionItem(s, index) {
         el('div', { className: 'suggestion-text' },
             el('div', { className: 'suggestion-type', text: s.type }),
             el('div', { className: 'suggestion-content', text: s.text }),
-            el('div', { className: 'confidence', text: `دقة الكشف: ${s.confidence}%` })
+            el('div', { className: 'confidence', text: t('suggestion.confidence', { n: s.confidence }) })
         ),
         el('div', { className: 'suggestion-actions' },
             el('button', {
                 className: 'btn-fix',
                 type: 'button',
-                text: '✓ تطبيق',
-                'aria-label': `تطبيق الاقتراح: ${s.type}`,
+                text: t('buttons.apply'),
+                'aria-label': t('aria.applyPrefix') + s.type,
                 onClick: () => applySuggestion(index)
             }),
             el('button', {
                 className: 'btn-copy',
                 type: 'button',
-                text: '📋 نسخ',
-                'aria-label': `نسخ نص الاقتراح: ${s.type}`,
+                text: t('buttons.copy'),
+                'aria-label': t('aria.copyPrefix') + s.type,
                 onClick: () => copySuggestion(s.text)
             })
         )
@@ -311,7 +397,7 @@ function renderSuggestions(suggestions) {
     renderList(
         suggestionsContainer,
         suggestions,
-        'لم يتم اكتشاف أخطاء لوحة مفاتيح',
+        t('empty.suggestionsNone'),
         buildSuggestionItem
     );
 }
@@ -329,8 +415,8 @@ function applySuggestion(index) {
 }
 
 function copySuggestion(text) {
-    const onSuccess = () => showToast('✓ تم النسخ إلى الحافظة');
-    const onFailure = () => showToast('⚠ فشل النسخ');
+    const onSuccess = () => showToast(t('messages.copied'));
+    const onFailure = () => showToast(t('messages.copyFailed'));
     try {
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(text).then(onSuccess, onFailure);
@@ -384,7 +470,7 @@ function buildHistoryItem(item) {
         className: 'history-item',
         role: 'button',
         tabindex: '0',
-        'aria-label': `استرجاع التصحيح من ${item.time}: ${preview}`,
+        'aria-label': t('aria.historyItemPrefix') + item.time + ': ' + preview,
         onClick: load,
         onKeydown: (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -403,7 +489,7 @@ function renderHistory() {
     renderList(
         historyContainer,
         history,
-        'لا يوجد سجل حتى الآن',
+        t('empty.history'),
         buildHistoryItem
     );
 }
@@ -413,14 +499,14 @@ function detectInput() {
         const value = textInput.value;
         if (value.length > MAX_INPUT_LENGTH) {
             textInput.value = value.substring(0, MAX_INPUT_LENGTH);
-            showToast(`الحد الأقصى ${MAX_INPUT_LENGTH} حرف`);
+            showToast(t('messages.maxLength', { n: MAX_INPUT_LENGTH }));
         }
         charCountSpan.textContent = textInput.value.length;
         renderSuggestions(detectAndFix(textInput.value));
     } catch (err) {
         console.error('detectInput failed:', err);
         clearChildren(suggestionsContainer);
-        suggestionsContainer.append(emptyState('حدث خطأ غير متوقع — حاول إدخال نص آخر.'));
+        suggestionsContainer.append(emptyState(t('messages.unexpectedError')));
     }
 }
 
@@ -469,8 +555,26 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-initTheme();
-renderHistory();
+function pickInitialLocale() {
+    try {
+        const stored = localStorage.getItem(STORAGE_LOCALE);
+        if (stored && SUPPORTED_LOCALES.includes(stored)) return stored;
+    } catch (e) { /* ignore */ }
+    const nav = (navigator.language || 'ar').toLowerCase();
+    return nav.startsWith('en') ? 'en' : 'ar';
+}
+
+(async function init() {
+    initTheme();
+    try {
+        await loadLocale(pickInitialLocale());
+    } catch (err) {
+        console.warn('Locale load failed; keeping baseline HTML:', err);
+    }
+    renderHistory();
+    clearChildren(suggestionsContainer);
+    suggestionsContainer.append(emptyState(t('empty.suggestionsIdle')));
+})();
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {

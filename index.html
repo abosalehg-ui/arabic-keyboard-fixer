@@ -454,6 +454,7 @@
     <div class="container">
         <div class="header">
             <div class="header-actions">
+                <button id="swapDirection" class="icon-btn" type="button" aria-label="فرض التحويل في الاتجاه المعاكس" title="تبديل الاتجاه يدوياً">⇄</button>
                 <button id="themeToggle" class="icon-btn" type="button" aria-label="تبديل المظهر (فاتح/داكن)" title="تبديل المظهر">🌙</button>
             </div>
             <h1>🔧 مصحح لوحة المفاتيح العربية <span class="status-indicator" aria-hidden="true"></span></h1>
@@ -473,7 +474,7 @@
                 عدد الأحرف: <span id="charCount">0</span>
             </div>
             <div class="shortcuts-hint" id="shortcutsHint">
-                <kbd>Ctrl</kbd>+<kbd>Enter</kbd> apply first suggestion · <kbd>Ctrl</kbd>+<kbd>L</kbd> clear input
+                <kbd>Ctrl</kbd>+<kbd>Enter</kbd> apply first suggestion · <kbd>Ctrl</kbd>+<kbd>L</kbd> clear input · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> copy first suggestion
             </div>
         </div>
 
@@ -538,6 +539,7 @@
         const charCountSpan = document.getElementById('charCount');
         const historyContainer = document.getElementById('historyContainer');
         const themeToggleBtn = document.getElementById('themeToggle');
+        const swapDirectionBtn = document.getElementById('swapDirection');
         const clearHistoryBtn = document.getElementById('clearHistoryBtn');
         const exportHistoryBtn = document.getElementById('exportHistoryBtn');
 
@@ -598,6 +600,28 @@
             showToast('🗑️ تم مسح السجل');
         });
 
+        /**
+         * Force-convert input in the opposite direction when auto-detection
+         * is wrong or the text mixes characters from both layouts.
+         */
+        swapDirectionBtn.addEventListener('click', () => {
+            const text = textInput.value.trim();
+            if (!text) {
+                showToast('لا يوجد نص للتبديل');
+                return;
+            }
+            let arabicCount = 0;
+            for (const ch of text) if (arabicChars.has(ch)) arabicCount++;
+            const isArabicMajority = arabicCount > [...text].length / 2;
+            const converted = isArabicMajority
+                ? convertToEnglish(text)
+                : convertToArabic(text, qwertyToArabic101);
+            textInput.value = converted;
+            addToHistory(text, converted);
+            detectInput();
+            showToast(isArabicMajority ? '⇄ حُوّل إلى إنجليزي' : '⇄ حُوّل إلى عربي');
+        });
+
         exportHistoryBtn.addEventListener('click', () => {
             if (history.length === 0) {
                 showToast('لا يوجد سجل للتصدير');
@@ -614,6 +638,13 @@
             URL.revokeObjectURL(url);
         });
 
+        /**
+         * Convert a QWERTY-typed string to Arabic using the given mapping.
+         * Characters not in the mapping (digits, spaces, punctuation already in Arabic) are kept as-is.
+         * @param {string} text
+         * @param {Record<string,string>} mapping - e.g. qwertyToArabic101 or qwertyToArabic102
+         * @returns {string}
+         */
         function convertToArabic(text, mapping) {
             let result = '';
             for (const char of text) {
@@ -623,6 +654,11 @@
             return result;
         }
 
+        /**
+         * Convert Arabic text back to QWERTY characters via the reverse Arabic-101 map.
+         * @param {string} text
+         * @returns {string}
+         */
         function convertToEnglish(text) {
             let result = '';
             for (const char of text) {
@@ -631,6 +667,12 @@
             return result;
         }
 
+        /**
+         * Fraction (0-100) of characters in `text` that belong to the Arabic alphabet.
+         * Used as a heuristic to rank 101 vs 102 conversion candidates.
+         * @param {string} text
+         * @returns {number}
+         */
         function scoreArabicness(text) {
             if (!text) return 0;
             let arabicMatches = 0;
@@ -640,6 +682,11 @@
             return Math.round((arabicMatches / [...text].length) * 100);
         }
 
+        /**
+         * Fraction (0-100) of characters in `text` that are English letters or common ASCII punctuation.
+         * @param {string} text
+         * @returns {number}
+         */
         function scoreEnglishness(text) {
             if (!text) return 0;
             let matches = 0;
@@ -650,6 +697,14 @@
             return Math.round((matches / stripped.length) * 100);
         }
 
+        /**
+         * Inspect text and return a sorted list of conversion suggestions, or null if none apply.
+         * Behavior:
+         *  - Mostly English-layout chars → propose Arabic 101 + 102 (sorted by Arabic-ness score)
+         *  - Mostly Arabic chars → propose English (Arabic-101 reverse)
+         * @param {string} text
+         * @returns {Array<{type:string,text:string,confidence:number,original:string}>|null}
+         */
         function detectAndFix(text) {
             if (!text.trim()) return null;
 
@@ -892,6 +947,12 @@
                     e.preventDefault();
                     textInput.value = '';
                     detectInput();
+                }
+            } else if (e.shiftKey && (e.key === 'c' || e.key === 'C' || e.key === 'C')) {
+                const suggestions = detectAndFix(textInput.value);
+                if (suggestions && suggestions[0]) {
+                    e.preventDefault();
+                    copySuggestion(suggestions[0].text);
                 }
             }
         });

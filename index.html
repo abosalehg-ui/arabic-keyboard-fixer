@@ -256,6 +256,29 @@
             background: #3d3d4d;
         }
 
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
+            background: #2d2d3d;
+            color: #e0e0e0;
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid #4a90e2;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            font-size: 0.95em;
+            opacity: 0;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .toast-visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
         @media (max-width: 600px) {
             .header h1 {
                 font-size: 1.4em;
@@ -273,6 +296,15 @@
 
             button {
                 flex: 1;
+                min-height: 44px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
             }
         }
     </style>
@@ -329,21 +361,13 @@
     </div>
 
     <script>
-        // Keyboard Mapping (QWERTY -> Arabic 101)
-        // QWERTY -> Arabic 101 (✅ تم التصحيح)
         const qwertyToArabic101 = {
-            // الصف الأول: q w e r t y u i o p [ ]
             'q': 'ض', 'w': 'ص', 'e': 'ث', 'r': 'ق', 't': 'ف', 'y': 'غ', 'u': 'ع', 'i': 'ه', 'o': 'خ', 'p': 'ح', '[': 'ج', ']': 'د',
-            // الصف الثاني: a s d f g h j k l ; '
-            // ✅ تصحيح: ' يجب أن يكون 'ط' وليس 'ل'
             'a': 'ش', 's': 'س', 'd': 'ي', 'f': 'ب', 'g': 'ل', 'h': 'ا', 'j': 'ت', 'k': 'ن', 'l': 'م', ';': 'ك', "'": 'ط',
-            // الصف الثالث: z x c v b n m , . /
-            // ✅ تصحيحات: b=لا (كان ّ), n=ى (كان ة), m=ة (كان و), ,=و, .=ز (كان ظ), /=؟ (كان ط)
             'z': 'ئ', 'x': 'ء', 'c': 'ؤ', 'v': 'ر', 'b': 'لا', 'n': 'ى', 'm': 'ة', ',': 'و', '.': 'ز', '/': '؟',
             '`': 'ذ'
         };
 
-        // QWERTY -> Arabic 102 (تخطيط عربي بديل)
         const qwertyToArabic102 = {
             'q': 'ف', 'w': 'ك', 'e': 'ج', 'r': 'د', 't': 'ش', 'y': 'غ', 'u': 'س', 'i': 'ا', 'o': 'ي', 'p': 'ب', '[': 'ص', ']': 'ض',
             'a': 'ل', 's': 'م', 'd': 'ن', 'f': 'ت', 'g': 'ة', 'h': 'خ', 'j': 'ه', 'k': 'ع', 'l': 'ق', ';': 'ط', "'": 'و',
@@ -351,15 +375,13 @@
             '`': 'ذ'
         };
 
-        // Reverse mapping
         const arabicToQwerty101 = {};
         Object.entries(qwertyToArabic101).forEach(([key, value]) => {
-            arabicToQwerty101[value] = key;
+            if (!(value in arabicToQwerty101)) arabicToQwerty101[value] = key;
         });
 
-        // Arabic characters set
-        const arabicChars = new Set(Object.values(qwertyToArabic101));
-        const englishChars = /[a-zA-Z\[\]';,./]/;
+        const arabicChars = new Set(Object.values(qwertyToArabic101).flatMap(v => [...v]));
+        const englishLayoutChars = /[a-zA-Z\[\]';,./`]/;
 
         const textInput = document.getElementById('textInput');
         const suggestionsContainer = document.getElementById('suggestionsContainer');
@@ -367,48 +389,81 @@
         const historyContainer = document.getElementById('historyContainer');
         let history = [];
 
-        // Detect and fix wrong keyboard layout (محسّن لدعم تخطيطات متعددة)
+        function convertToArabic(text, mapping) {
+            let result = '';
+            for (const char of text) {
+                const lower = char.toLowerCase();
+                result += mapping[lower] || char;
+            }
+            return result;
+        }
+
+        function convertToEnglish(text) {
+            let result = '';
+            for (const char of text) {
+                result += arabicToQwerty101[char] || char;
+            }
+            return result;
+        }
+
+        function scoreArabicness(text) {
+            if (!text) return 0;
+            let arabicMatches = 0;
+            for (const char of text) {
+                if (arabicChars.has(char)) arabicMatches++;
+            }
+            return Math.round((arabicMatches / [...text].length) * 100);
+        }
+
+        function scoreEnglishness(text) {
+            if (!text) return 0;
+            let matches = 0;
+            const stripped = [...text];
+            for (const char of stripped) {
+                if (/[a-zA-Z\s.,!?'"()\-]/.test(char)) matches++;
+            }
+            return Math.round((matches / stripped.length) * 100);
+        }
+
         function detectAndFix(text) {
             if (!text.trim()) return null;
 
-            // Count Arabic and English chars
             let arabicCount = 0, englishCount = 0;
-
-            for (let char of text.toLowerCase()) {
+            for (const char of text) {
                 if (arabicChars.has(char)) arabicCount++;
-                else if (englishChars.test(char)) englishCount++;
+                else if (englishLayoutChars.test(char)) englishCount++;
             }
 
             const suggestions = [];
+            const totalCount = arabicCount + englishCount || 1;
 
-            // If mostly English chars, suggest Arabic conversion
             if (englishCount > arabicCount && englishCount > text.length * 0.5) {
-                // حاول Arabic 101 و Arabic 102
                 const arabic101 = convertToArabic(text, qwertyToArabic101);
                 const arabic102 = convertToArabic(text, qwertyToArabic102);
-                
-                const confidence = Math.round((englishCount / text.length) * 100);
+
                 suggestions.push({
                     type: 'تحويل إلى عربي (101)',
                     text: arabic101,
-                    confidence: confidence,
+                    confidence: scoreArabicness(arabic101),
                     original: text
                 });
-                suggestions.push({
-                    type: 'تحويل إلى عربي (102)',
-                    text: arabic102,
-                    confidence: confidence,
-                    original: text
-                });
+                if (arabic102 !== arabic101) {
+                    suggestions.push({
+                        type: 'تحويل إلى عربي (102)',
+                        text: arabic102,
+                        confidence: scoreArabicness(arabic102),
+                        original: text
+                    });
+                }
+                suggestions.sort((a, b) => b.confidence - a.confidence);
             }
 
-            // If mostly Arabic chars, suggest English conversion
             if (arabicCount > englishCount && arabicCount > text.length * 0.5) {
-                const confidence = Math.round((arabicCount / text.length) * 100);
+                const english = convertToEnglish(text);
                 suggestions.push({
                     type: 'تحويل إلى إنجليزي',
-                    text: potentialEnglish,
-                    confidence: confidence,
+                    text: english,
+                    confidence: Math.round((arabicCount / totalCount) * 100),
                     original: text
                 });
             }
@@ -416,99 +471,168 @@
             return suggestions.length > 0 ? suggestions : null;
         }
 
-        // دالة مساعدة للتحويل
-        function convertToArabic(text, mapping) {
-            let result = '';
-            for (let char of text.toLowerCase()) {
-                result += mapping[char] || char;
-            }
-            return result;
+        function clearChildren(node) {
+            while (node.firstChild) node.removeChild(node.firstChild);
         }
 
-        // Render suggestions
+        function buildSuggestionItem(s, index) {
+            const item = document.createElement('div');
+            item.className = 'suggestion-item';
+
+            const textWrap = document.createElement('div');
+            textWrap.className = 'suggestion-text';
+
+            const type = document.createElement('div');
+            type.className = 'suggestion-type';
+            type.textContent = s.type;
+
+            const content = document.createElement('div');
+            content.className = 'suggestion-content';
+            content.textContent = s.text;
+
+            const confidence = document.createElement('div');
+            confidence.className = 'confidence';
+            confidence.textContent = `دقة الكشف: ${s.confidence}%`;
+
+            textWrap.append(type, content, confidence);
+
+            const actions = document.createElement('div');
+            actions.className = 'suggestion-actions';
+
+            const fixBtn = document.createElement('button');
+            fixBtn.className = 'btn-fix';
+            fixBtn.type = 'button';
+            fixBtn.textContent = '✓ تطبيق';
+            fixBtn.setAttribute('aria-label', `تطبيق الاقتراح: ${s.type}`);
+            fixBtn.addEventListener('click', () => applySuggestion(index));
+
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'btn-copy';
+            copyBtn.type = 'button';
+            copyBtn.textContent = '📋 نسخ';
+            copyBtn.setAttribute('aria-label', `نسخ نص الاقتراح: ${s.type}`);
+            copyBtn.addEventListener('click', () => copySuggestion(s.text));
+
+            actions.append(fixBtn, copyBtn);
+            item.append(textWrap, actions);
+            return item;
+        }
+
         function renderSuggestions(suggestions) {
+            clearChildren(suggestionsContainer);
             if (!suggestions || suggestions.length === 0) {
-                suggestionsContainer.innerHTML = '<div class="empty-state">لم يتم اكتشاف أخطاء لوحة مفاتيح</div>';
+                const empty = document.createElement('div');
+                empty.className = 'empty-state';
+                empty.textContent = 'لم يتم اكتشاف أخطاء لوحة مفاتيح';
+                suggestionsContainer.append(empty);
                 return;
             }
-
-            suggestionsContainer.innerHTML = suggestions.map((s, i) => `
-                <div class="suggestion-item">
-                    <div class="suggestion-text">
-                        <div class="suggestion-type">${s.type}</div>
-                        <div class="suggestion-content">${s.text}</div>
-                        <div class="confidence">دقة الكشف: ${s.confidence}%</div>
-                    </div>
-                    <div class="suggestion-actions">
-                        <button class="btn-fix" onclick="applySuggestion(${i})">✓ تطبيق</button>
-                        <button class="btn-copy" onclick="copySuggestion('${s.text.replace(/'/g, "\\'")}')">📋 نسخ</button>
-                    </div>
-                </div>
-            `).join('');
+            suggestions.forEach((s, i) => suggestionsContainer.append(buildSuggestionItem(s, i)));
         }
 
-        // Apply suggestion
-        window.applySuggestion = function(index) {
+        function applySuggestion(index) {
             const text = textInput.value.trim();
             const suggestions = detectAndFix(text);
             if (suggestions && suggestions[index]) {
                 const fixed = suggestions[index];
                 textInput.value = fixed.text;
                 addToHistory(text, fixed.text);
-                detectAndFix(fixed.text);
                 charCountSpan.textContent = fixed.text.length;
+                detectInput();
             }
-        };
+        }
 
-        // Copy to clipboard
-        window.copySuggestion = function(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                alert('✓ تم النسخ إلى الحافظة');
-            });
-        };
+        function copySuggestion(text) {
+            const onSuccess = () => showToast('✓ تم النسخ إلى الحافظة');
+            const onFailure = () => showToast('⚠ فشل النسخ');
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(onSuccess, onFailure);
+                } else {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.setAttribute('readonly', '');
+                    ta.style.position = 'absolute';
+                    ta.style.left = '-9999px';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    onSuccess();
+                }
+            } catch (err) {
+                onFailure();
+            }
+        }
 
-        // Add to history
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.setAttribute('role', 'status');
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.add('toast-visible'));
+            setTimeout(() => {
+                toast.classList.remove('toast-visible');
+                toast.addEventListener('transitionend', () => toast.remove(), { once: true });
+            }, 1800);
+        }
+
         function addToHistory(original, fixed) {
             history.unshift({ original, fixed, time: new Date().toLocaleTimeString('ar-SA') });
             if (history.length > 5) history.pop();
             renderHistory();
         }
 
-        // Render history
-        function renderHistory() {
-            if (history.length === 0) {
-                historyContainer.innerHTML = '<div class="empty-state">لا يوجد سجل حتى الآن</div>';
-                return;
-            }
-
-            historyContainer.innerHTML = history.map((item, i) => `
-                <div class="history-item" onclick="textInput.value='${item.fixed.replace(/'/g, "\\'")}'; detectInput()">
-                    <strong>${item.time}</strong> - ${item.fixed.substring(0, 50)}...
-                </div>
-            `).join('');
+        function buildHistoryItem(item) {
+            const div = document.createElement('div');
+            div.className = 'history-item';
+            div.setAttribute('role', 'button');
+            div.setAttribute('tabindex', '0');
+            const preview = item.fixed.length > 50 ? item.fixed.substring(0, 50) + '…' : item.fixed;
+            const time = document.createElement('strong');
+            time.textContent = item.time;
+            div.append(time, ` - ${preview}`);
+            const load = () => {
+                textInput.value = item.fixed;
+                charCountSpan.textContent = item.fixed.length;
+                detectInput();
+            };
+            div.addEventListener('click', load);
+            div.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    load();
+                }
+            });
+            return div;
         }
 
-        // Event listeners
-        textInput.addEventListener('input', function() {
-            charCountSpan.textContent = this.value.length;
-            const suggestions = detectAndFix(this.value);
-            renderSuggestions(suggestions);
-        });
+        function renderHistory() {
+            clearChildren(historyContainer);
+            if (history.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'empty-state';
+                empty.textContent = 'لا يوجد سجل حتى الآن';
+                historyContainer.append(empty);
+                return;
+            }
+            history.forEach(item => historyContainer.append(buildHistoryItem(item)));
+        }
 
-        // Paste detection
+        function detectInput() {
+            charCountSpan.textContent = textInput.value.length;
+            renderSuggestions(detectAndFix(textInput.value));
+        }
+
+        textInput.addEventListener('input', detectInput);
+
         textInput.addEventListener('paste', function(e) {
             e.preventDefault();
             const text = (e.clipboardData || window.clipboardData).getData('text');
             textInput.value = text;
-            charCountSpan.textContent = text.length;
-            const suggestions = detectAndFix(text);
-            renderSuggestions(suggestions);
+            detectInput();
         });
-
-        function detectInput() {
-            const suggestions = detectAndFix(textInput.value);
-            renderSuggestions(suggestions);
-        }
     </script>
 </body>
 </html>

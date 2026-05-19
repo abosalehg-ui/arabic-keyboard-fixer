@@ -2,9 +2,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const htmlPath = path.join(__dirname, '..', 'index.html');
-const html = fs.readFileSync(htmlPath, 'utf8');
-const lines = html.split('\n');
+const jsPath = path.join(__dirname, '..', 'js', 'app.js');
+const source = fs.readFileSync(jsPath, 'utf8');
+const lines = source.split('\n');
 
 function findLine(prefix) {
     return lines.findIndex(l => l.trim().startsWith(prefix));
@@ -13,10 +13,10 @@ function findLine(prefix) {
 const startMappings = findLine('const qwertyToArabic101');
 const endMappings = findLine('const textInput');
 const startFns = findLine('function convertToArabic');
-const endFns = findLine('function clearChildren');
+const endFns = findLine('function el(');
 
 if (startMappings < 0 || endMappings < 0 || startFns < 0 || endFns < 0) {
-    console.error('Could not locate code blocks in index.html');
+    console.error('Could not locate code blocks in js/app.js');
     process.exit(2);
 }
 

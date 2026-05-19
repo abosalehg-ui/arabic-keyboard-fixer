@@ -448,10 +448,31 @@
                 transition-duration: 0.01ms !important;
             }
         }
+
+        .skip-link {
+            position: absolute;
+            top: -100px;
+            right: 12px;
+            background: var(--accent);
+            color: white;
+            padding: 8px 14px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            z-index: 10000;
+            transition: top 0.2s ease;
+        }
+
+        .skip-link:focus {
+            top: 12px;
+            outline: 2px solid var(--text-primary);
+            outline-offset: 2px;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+    <a href="#mainContent" class="skip-link">تخطي إلى المحتوى الرئيسي</a>
+    <main class="container" id="mainContent">
         <div class="header">
             <div class="header-actions">
                 <button id="swapDirection" class="icon-btn" type="button" aria-label="فرض التحويل في الاتجاه المعاكس" title="تبديل الاتجاه يدوياً">⇄</button>
@@ -467,6 +488,7 @@
                 id="textInput"
                 placeholder="مثال: g]d la;gm td hg;jhfm fg,pm hglthjdp (هذا نص عربي على لوحة إنجليزية)"
                 aria-describedby="charCountLabel shortcutsHint"
+                aria-keyshortcuts="Control+Enter Control+L Control+Shift+C"
                 spellcheck="false"
                 autocomplete="off"
             ></textarea>
@@ -509,7 +531,7 @@
         <div class="footer">
             <p>تطبيق مصحح لوحة المفاتيح العربية v1.1 | يعمل بالكامل في المتصفح، بدون إرسال بيانات</p>
         </div>
-    </div>
+    </main>
 
     <script>
         const qwertyToArabic101 = {
@@ -751,63 +773,83 @@
             return suggestions.length > 0 ? suggestions : null;
         }
 
+        /**
+         * Tiny element builder: el('div', { className: 'x' }, child, child, …).
+         * `children` may be DOM nodes, strings (escaped via textContent), or arrays of either.
+         * @param {string} tag
+         * @param {Object} [attrs]
+         * @param  {...(Node|string|Array)} children
+         */
+        function el(tag, attrs, ...children) {
+            const node = document.createElement(tag);
+            if (attrs) {
+                for (const [k, v] of Object.entries(attrs)) {
+                    if (v == null) continue;
+                    if (k === 'className') node.className = v;
+                    else if (k === 'text') node.textContent = v;
+                    else if (k === 'onClick') node.addEventListener('click', v);
+                    else if (k.startsWith('on') && typeof v === 'function') node.addEventListener(k.slice(2).toLowerCase(), v);
+                    else if (k === 'dataset') Object.assign(node.dataset, v);
+                    else node.setAttribute(k, v);
+                }
+            }
+            for (const child of children.flat(Infinity)) {
+                if (child == null || child === false) continue;
+                node.append(child);
+            }
+            return node;
+        }
+
         function clearChildren(node) {
             while (node.firstChild) node.removeChild(node.firstChild);
         }
 
+        function emptyState(message) {
+            return el('div', { className: 'empty-state', text: message });
+        }
+
         function buildSuggestionItem(s, index) {
-            const item = document.createElement('div');
-            item.className = 'suggestion-item';
+            return el('div', { className: 'suggestion-item' },
+                el('div', { className: 'suggestion-text' },
+                    el('div', { className: 'suggestion-type', text: s.type }),
+                    el('div', { className: 'suggestion-content', text: s.text }),
+                    el('div', { className: 'confidence', text: `دقة الكشف: ${s.confidence}%` })
+                ),
+                el('div', { className: 'suggestion-actions' },
+                    el('button', {
+                        className: 'btn-fix',
+                        type: 'button',
+                        text: '✓ تطبيق',
+                        'aria-label': `تطبيق الاقتراح: ${s.type}`,
+                        onClick: () => applySuggestion(index)
+                    }),
+                    el('button', {
+                        className: 'btn-copy',
+                        type: 'button',
+                        text: '📋 نسخ',
+                        'aria-label': `نسخ نص الاقتراح: ${s.type}`,
+                        onClick: () => copySuggestion(s.text)
+                    })
+                )
+            );
+        }
 
-            const textWrap = document.createElement('div');
-            textWrap.className = 'suggestion-text';
-
-            const type = document.createElement('div');
-            type.className = 'suggestion-type';
-            type.textContent = s.type;
-
-            const content = document.createElement('div');
-            content.className = 'suggestion-content';
-            content.textContent = s.text;
-
-            const confidence = document.createElement('div');
-            confidence.className = 'confidence';
-            confidence.textContent = `دقة الكشف: ${s.confidence}%`;
-
-            textWrap.append(type, content, confidence);
-
-            const actions = document.createElement('div');
-            actions.className = 'suggestion-actions';
-
-            const fixBtn = document.createElement('button');
-            fixBtn.className = 'btn-fix';
-            fixBtn.type = 'button';
-            fixBtn.textContent = '✓ تطبيق';
-            fixBtn.setAttribute('aria-label', `تطبيق الاقتراح: ${s.type}`);
-            fixBtn.addEventListener('click', () => applySuggestion(index));
-
-            const copyBtn = document.createElement('button');
-            copyBtn.className = 'btn-copy';
-            copyBtn.type = 'button';
-            copyBtn.textContent = '📋 نسخ';
-            copyBtn.setAttribute('aria-label', `نسخ نص الاقتراح: ${s.type}`);
-            copyBtn.addEventListener('click', () => copySuggestion(s.text));
-
-            actions.append(fixBtn, copyBtn);
-            item.append(textWrap, actions);
-            return item;
+        function renderList(container, items, emptyMessage, builder) {
+            clearChildren(container);
+            if (!items || items.length === 0) {
+                container.append(emptyState(emptyMessage));
+                return;
+            }
+            items.forEach((item, i) => container.append(builder(item, i)));
         }
 
         function renderSuggestions(suggestions) {
-            clearChildren(suggestionsContainer);
-            if (!suggestions || suggestions.length === 0) {
-                const empty = document.createElement('div');
-                empty.className = 'empty-state';
-                empty.textContent = 'لم يتم اكتشاف أخطاء لوحة مفاتيح';
-                suggestionsContainer.append(empty);
-                return;
-            }
-            suggestions.forEach((s, i) => suggestionsContainer.append(buildSuggestionItem(s, i)));
+            renderList(
+                suggestionsContainer,
+                suggestions,
+                'لم يتم اكتشاف أخطاء لوحة مفاتيح',
+                buildSuggestionItem
+            );
         }
 
         function applySuggestion(index) {
@@ -867,49 +909,55 @@
         }
 
         function buildHistoryItem(item) {
-            const div = document.createElement('div');
-            div.className = 'history-item';
-            div.setAttribute('role', 'button');
-            div.setAttribute('tabindex', '0');
             const preview = item.fixed.length > 50 ? item.fixed.substring(0, 50) + '…' : item.fixed;
-            const time = document.createElement('strong');
-            time.textContent = item.time;
-            div.append(time, ` - ${preview}`);
             const load = () => {
                 textInput.value = item.fixed;
                 charCountSpan.textContent = item.fixed.length;
+                textInput.focus();
                 detectInput();
             };
-            div.addEventListener('click', load);
-            div.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    load();
+            const node = el('div', {
+                className: 'history-item',
+                role: 'button',
+                tabindex: '0',
+                'aria-label': `استرجاع التصحيح من ${item.time}: ${preview}`,
+                onClick: load,
+                onKeydown: (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        load();
+                    }
                 }
-            });
-            return div;
+            },
+                el('strong', { text: item.time }),
+                ` - ${preview}`
+            );
+            return node;
         }
 
         function renderHistory() {
-            clearChildren(historyContainer);
-            if (history.length === 0) {
-                const empty = document.createElement('div');
-                empty.className = 'empty-state';
-                empty.textContent = 'لا يوجد سجل حتى الآن';
-                historyContainer.append(empty);
-                return;
-            }
-            history.forEach(item => historyContainer.append(buildHistoryItem(item)));
+            renderList(
+                historyContainer,
+                history,
+                'لا يوجد سجل حتى الآن',
+                buildHistoryItem
+            );
         }
 
         function detectInput() {
-            const value = textInput.value;
-            if (value.length > MAX_INPUT_LENGTH) {
-                textInput.value = value.substring(0, MAX_INPUT_LENGTH);
-                showToast(`الحد الأقصى ${MAX_INPUT_LENGTH} حرف`);
+            try {
+                const value = textInput.value;
+                if (value.length > MAX_INPUT_LENGTH) {
+                    textInput.value = value.substring(0, MAX_INPUT_LENGTH);
+                    showToast(`الحد الأقصى ${MAX_INPUT_LENGTH} حرف`);
+                }
+                charCountSpan.textContent = textInput.value.length;
+                renderSuggestions(detectAndFix(textInput.value));
+            } catch (err) {
+                console.error('detectInput failed:', err);
+                clearChildren(suggestionsContainer);
+                suggestionsContainer.append(emptyState('حدث خطأ غير متوقع — حاول إدخال نص آخر.'));
             }
-            charCountSpan.textContent = textInput.value.length;
-            renderSuggestions(detectAndFix(textInput.value));
         }
 
         function debounce(fn, wait) {

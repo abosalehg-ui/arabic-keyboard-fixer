@@ -1,4 +1,4 @@
-const CACHE = 'akf-v3';
+const CACHE = 'akf-v4';
 const ASSETS = [
     './',
     './index.html',

@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
     <title>مصحح لوحة المفاتيح العربية | Arabic Keyboard Fixer</title>
     <meta name="description" content="تطبيق ويب يصحّح النص المكتوب بتخطيط لوحة مفاتيح خاطئ بين العربية والإنجليزية — يعمل بالكامل في المتصفح، بدون إرسال بيانات.">
     <meta name="keywords" content="عربي, لوحة مفاتيح, تحويل, Arabic, keyboard, fixer, qwerty, 101, 102">
@@ -61,14 +62,14 @@
             <div class="shortcuts-hint" id="shortcutsHint"></div>
         </div>
 
-        <div class="suggestions-section" role="region" aria-live="polite" id="suggestionsRegion">
+        <div class="suggestions-section" role="region" id="suggestionsRegion">
             <div class="suggestions-title" id="suggestionsTitle">💡 الاقتراحات والإصلاحات</div>
             <div id="suggestionsContainer"></div>
         </div>
 
         <div class="keyboard-info" id="keyboardInfo"></div>
 
-        <div class="history" id="historyRegion">
+        <div class="history" role="region" id="historyRegion">
             <div class="history-header">
                 <div class="history-title" id="historyTitle">📝 السجل</div>
                 <div class="history-controls">
@@ -82,6 +83,8 @@
         <div class="footer">
             <p id="footerText">تطبيق مصحح لوحة المفاتيح العربية v1.1</p>
         </div>
+
+        <div id="srStatus" class="sr-only" role="status" aria-live="polite"></div>
     </main>
 
     <script src="js/app.js" defer></script>

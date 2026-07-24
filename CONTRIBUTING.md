@@ -68,7 +68,7 @@ git checkout -b fix/your-bug-fix
 git checkout -b docs/your-documentation
 ```
 
-**قواعس أسماء الفروع:**
+**قواعد أسماء الفروع:**
 - `feature/` - لميزة جديدة
 - `fix/` - لتصحيح خطأ
 - `docs/` - لتحسين التوثيق
@@ -86,22 +86,38 @@ git checkout -b docs/your-documentation
 # - أي editor تفضله
 ```
 
-**ملفات مهمة لتعديلها:**
-- `index.html` - الملف الرئيسي (يحتوي على كل شيء)
-- `README.md` - التوثيق
-- `CONTRIBUTING.md` - هذا الملف
+**بنية المشروع والملفات المهمة:**
+- `index.html` - هيكل الصفحة والبيانات الوصفية (SEO/OG/JSON-LD)
+- `js/app.js` - كل المنطق: جداول التحويل، الكشف، الواجهة، السجل، السمات، i18n
+- `css/styles.css` - كل التنسيقات (متغيرات CSS للوضع الليلي/الفاتح)
+- `locales/ar.json` و `locales/en.json` - نصوص الواجهة (لا تكتب نصوصاً ثابتة داخل الكود)
+- `service-worker.js` - التخزين المؤقت للعمل دون اتصال (زِد `CACHE` عند تغيير الأصول)
+- `tests/converter.test.js` - اختبارات الوحدة بدون تبعيات
+- `README.md` / `CONTRIBUTING.md` - التوثيق
+
+> المشروع لا يحتاج أي بناء (build) ولا تبعيات npm. عند تعديل نصوص الواجهة، حدّث **كلا** ملفي `ar.json` و `en.json`.
 
 ### الخطوة 5️⃣: اختبر تغييراتك
 
 ```bash
-# افتح index.html في المتصفح
-# واختبر التغييرات بعناية
+# 1) شغّل اختبارات الوحدة (تعمل تلقائياً في CI أيضاً)
+node tests/converter.test.js
+# أو: npm test
 
-# تأكد من:
-# - التحويل يعمل بشكل صحيح
-# - الواجهة تظهر بشكل صحيح
-# - لا توجد أخطاء في console (F12)
+# 2) شغّل خادم HTTP محلي لاختبار الواجهة كاملةً
+#    (مطلوب حتى يعمل service worker و fetch لملفات locales)
+python3 -m http.server 8000
+# ثم افتح: http://localhost:8000
 ```
+
+> فتح `index.html` مباشرة عبر `file://` يعطّل تبديل اللغة وتسجيل service worker بسبب قيود المتصفح — استخدم خادماً محلياً.
+
+**تأكد من:**
+- التحويل يعمل بشكل صحيح (جرّب `g]d la;gm`)
+- الواجهة تظهر بشكل صحيح في الوضعين الليلي والفاتح
+- تبديل اللغة يعمل (عربي/إنجليزي)
+- لا توجد أخطاء في console (F12)
+- اختبارات الوحدة تمرّ
 
 ### الخطوة 6️⃣: أرسل التعديلات (Commit)
 
@@ -122,7 +138,7 @@ git commit -m "Fix: your bug fix description"
 git commit -m "Docs: your documentation change"
 ```
 
-**قواعس رسائل Commit:**
+**قواعد رسائل Commit:**
 - كن واضح ومختصراً
 - استخدم الأمر "Add", "Fix", "Update", "Remove"
 - لا تكتب جملة طويلة

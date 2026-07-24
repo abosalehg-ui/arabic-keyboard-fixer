@@ -86,14 +86,15 @@ function applyStaticStrings() {
     setText('clearHistoryBtn', 'buttons.clear');
     setHtml('shortcutsHint', 'shortcutsHint');
 
-    const ta = document.getElementById('textInput');
-    if (ta) ta.setAttribute('placeholder', t('placeholder.input'));
+    if (textInput) textInput.setAttribute('placeholder', t('placeholder.input'));
 
     setAttr('swapDirection', 'aria-label', 'aria.swap');
     setAttr('swapDirection', 'title', 'buttons.swap');
     setAttr('themeToggle', 'title', 'buttons.theme');
     setAttr('exportHistoryBtn', 'aria-label', 'aria.export');
     setAttr('clearHistoryBtn', 'aria-label', 'aria.clear');
+    setAttr('suggestionsRegion', 'aria-label', 'aria.suggestions');
+    setAttr('historyRegion', 'aria-label', 'aria.history');
 
     if (languageToggleBtn) {
         languageToggleBtn.textContent = t('buttons.language');
@@ -255,21 +256,6 @@ function scoreArabicness(text) {
 }
 
 /**
- * Fraction (0-100) of characters in `text` that are English letters or common ASCII punctuation.
- * @param {string} text
- * @returns {number}
- */
-function scoreEnglishness(text) {
-    if (!text) return 0;
-    let matches = 0;
-    const stripped = [...text];
-    for (const char of stripped) {
-        if (/[a-zA-Z\s.,!?'"()\-]/.test(char)) matches++;
-    }
-    return Math.round((matches / stripped.length) * 100);
-}
-
-/**
  * Inspect text and return a sorted list of conversion suggestions, or null if none apply.
  * Behavior:
  *  - Mostly English-layout chars → propose Arabic 101 + 102 (sorted by Arabic-ness score)
@@ -402,8 +388,24 @@ function renderSuggestions(suggestions) {
     );
 }
 
+/**
+ * Update the visually-hidden live region with a concise summary of the current
+ * suggestions so screen readers announce a short result instead of re-reading
+ * the whole rebuilt suggestions panel on every keystroke. Silent while the
+ * input is empty to avoid idle chatter.
+ * @param {Array|null} suggestions
+ */
+function announceSuggestions(suggestions) {
+    const node = document.getElementById('srStatus');
+    if (!node) return;
+    if (!textInput.value.trim()) { node.textContent = ''; return; }
+    node.textContent = (suggestions && suggestions.length)
+        ? t('aria.suggestionsAnnounce', { n: suggestions.length })
+        : t('empty.suggestionsNone');
+}
+
 function applySuggestion(index) {
-    const text = textInput.value.trim();
+    const text = textInput.value;
     const suggestions = detectAndFix(text);
     if (suggestions && suggestions[index]) {
         const fixed = suggestions[index];
@@ -452,7 +454,8 @@ function showToast(message) {
 
 function addToHistory(original, fixed) {
     if (original === fixed) return;
-    history.unshift({ original, fixed, time: new Date().toLocaleTimeString('ar-SA') });
+    const timeLocale = currentLocale === 'ar' ? 'ar-SA' : 'en-US';
+    history.unshift({ original, fixed, time: new Date().toLocaleTimeString(timeLocale) });
     if (history.length > MAX_HISTORY) history.length = MAX_HISTORY;
     saveHistory();
     renderHistory();
@@ -502,7 +505,9 @@ function detectInput() {
             showToast(t('messages.maxLength', { n: MAX_INPUT_LENGTH }));
         }
         charCountSpan.textContent = textInput.value.length;
-        renderSuggestions(detectAndFix(textInput.value));
+        const suggestions = detectAndFix(textInput.value);
+        renderSuggestions(suggestions);
+        announceSuggestions(suggestions);
     } catch (err) {
         console.error('detectInput failed:', err);
         clearChildren(suggestionsContainer);
@@ -525,13 +530,6 @@ textInput.addEventListener('input', () => {
     debouncedDetect();
 });
 
-textInput.addEventListener('paste', function(e) {
-    e.preventDefault();
-    const text = (e.clipboardData || window.clipboardData).getData('text');
-    textInput.value = text;
-    detectInput();
-});
-
 document.addEventListener('keydown', (e) => {
     if (!(e.ctrlKey || e.metaKey)) return;
     if (e.key === 'Enter') {
@@ -546,7 +544,7 @@ document.addEventListener('keydown', (e) => {
             textInput.value = '';
             detectInput();
         }
-    } else if (e.shiftKey && (e.key === 'c' || e.key === 'C' || e.key === 'C')) {
+    } else if (e.shiftKey && (e.key === 'c' || e.key === 'C')) {
         const suggestions = detectAndFix(textInput.value);
         if (suggestions && suggestions[0]) {
             e.preventDefault();

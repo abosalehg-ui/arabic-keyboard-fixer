@@ -27,6 +27,7 @@
   "aria.copyPrefix": "Copy suggestion text: ",
   "aria.history": "Correction history",
   "aria.suggestions": "Suggestions",
+  "aria.suggestionsAnnounce": "{n} suggestion(s) found",
   "aria.historyItemPrefix": "Reload correction from ",
   "messages.copied": "✓ Copied to clipboard",
   "messages.copyFailed": "⚠ Copy failed",

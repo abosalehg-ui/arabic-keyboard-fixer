@@ -27,6 +27,7 @@
   "aria.copyPrefix": "نسخ نص الاقتراح: ",
   "aria.history": "سجل التصحيحات",
   "aria.suggestions": "الاقتراحات",
+  "aria.suggestionsAnnounce": "تم إيجاد {n} اقتراح",
   "aria.historyItemPrefix": "استرجاع التصحيح من ",
   "messages.copied": "✓ تم النسخ إلى الحافظة",
   "messages.copyFailed": "⚠ فشل النسخ",

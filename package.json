@@ -1,0 +1,13 @@
+{
+  "name": "arabic-keyboard-fixer",
+  "version": "1.1.0",
+  "description": "Client-side web app that fixes text typed on the wrong keyboard layout between Arabic and English.",
+  "private": true,
+  "scripts": {
+    "test": "node tests/converter.test.js"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}

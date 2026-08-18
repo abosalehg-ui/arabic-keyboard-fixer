@@ -15,4 +15,8 @@ jobs:
         with:
           node-version: '20'
       - name: Run converter tests
-        run: node tests/converter.test.js
+        run: npm test
+      - name: Install lint tooling
+        run: npm install --no-audit --no-fund --no-save eslint@9
+      - name: Lint
+        run: npx eslint .

@@ -35,58 +35,78 @@
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <a href="#mainContent" class="skip-link" id="skipLink">تخطي إلى المحتوى الرئيسي</a>
+    <a href="#mainContent" class="skip-link" id="skipLink" data-i18n="buttons.skipToMain">تخطي إلى المحتوى الرئيسي</a>
     <main class="container" id="mainContent">
         <div class="header">
             <div class="header-actions">
-                <button id="languageToggle" class="icon-btn lang-btn" type="button">English</button>
-                <button id="swapDirection" class="icon-btn" type="button">⇄</button>
-                <button id="themeToggle" class="icon-btn" type="button">🌙</button>
+                <button id="languageToggle" class="icon-btn lang-btn" type="button"
+                        data-i18n="buttons.language" data-i18n-aria="buttons.language">English</button>
+                <button id="swapDirection" class="icon-btn" type="button"
+                        data-i18n-aria="aria.swap" data-i18n-title="buttons.swap">
+                    <span aria-hidden="true">⇄</span>
+                </button>
+                <button id="themeToggle" class="icon-btn" type="button" data-i18n-title="buttons.theme">🌙</button>
             </div>
-            <h1><span id="headerTitle">🔧 مصحح لوحة المفاتيح العربية</span> <span class="status-indicator" aria-hidden="true"></span></h1>
-            <p id="headerSubtitle">اكتب أو الصق النص المخلوط واحصل على الإصلاح الفوري</p>
+            <h1><span id="headerTitle" data-i18n="title">🔧 مصحح لوحة المفاتيح العربية</span> <span class="status-indicator" aria-hidden="true"></span></h1>
+            <p id="headerSubtitle" data-i18n="subtitle">اكتب أو الصق النص المخلوط واحصل على الإصلاح الفوري</p>
         </div>
 
         <div class="input-section">
-            <label for="textInput" id="inputLabel">أدخل النص المخلوط:</label>
+            <label for="textInput" id="inputLabel" data-i18n="labels.input">أدخل النص المخلوط:</label>
             <textarea
                 id="textInput"
+                dir="auto"
                 aria-describedby="charCountLabel shortcutsHint"
-                aria-keyshortcuts="Control+Enter Control+L Control+Shift+C"
+                aria-keyshortcuts="Control+Enter Alt+K Alt+C"
                 spellcheck="false"
                 autocomplete="off"
+                data-i18n-placeholder="placeholder.input"
             ></textarea>
             <div class="char-count" id="charCountLabel">
-                <span id="charCountLabelText">عدد الأحرف:</span> <span id="charCount">0</span>
+                <span id="charCountLabelText" data-i18n="labels.charCount">عدد الأحرف:</span> <span id="charCount">0</span>
             </div>
+            <p class="length-warning" id="lengthWarning" role="alert" hidden></p>
             <div class="shortcuts-hint" id="shortcutsHint"></div>
         </div>
 
-        <div class="suggestions-section" role="region" id="suggestionsRegion">
-            <div class="suggestions-title" id="suggestionsTitle">💡 الاقتراحات والإصلاحات</div>
+        <div class="suggestions-section" role="region" id="suggestionsRegion" data-i18n-aria="aria.suggestions">
+            <div class="suggestions-title" id="suggestionsTitle" data-i18n="labels.suggestions">💡 الاقتراحات والإصلاحات</div>
             <div id="suggestionsContainer"></div>
         </div>
 
         <div class="keyboard-info" id="keyboardInfo"></div>
 
-        <div class="history" role="region" id="historyRegion">
+        <div class="history" role="region" id="historyRegion" data-i18n-aria="aria.history">
             <div class="history-header">
-                <div class="history-title" id="historyTitle">📝 السجل</div>
+                <div class="history-title" id="historyTitle" data-i18n="labels.history">📝 السجل</div>
                 <div class="history-controls">
-                    <button id="exportHistoryBtn" class="btn-secondary" type="button">⤓ تصدير</button>
-                    <button id="clearHistoryBtn" class="btn-secondary" type="button">🗑️ مسح</button>
+                    <label class="history-switch">
+                        <input type="checkbox" id="historyToggle">
+                        <span data-i18n="labels.historyToggle">حفظ السجل</span>
+                    </label>
+                    <button id="exportHistoryBtn" class="btn-secondary" type="button"
+                            data-i18n="buttons.export" data-i18n-aria="aria.export">⤓ تصدير</button>
+                    <button id="clearHistoryBtn" class="btn-secondary" type="button"
+                            data-i18n="buttons.clear" data-i18n-aria="aria.clear">🗑️ مسح</button>
                 </div>
             </div>
-            <div id="historyContainer"></div>
+            <p class="history-notice" id="historyNotice" data-i18n="labels.historyNotice">
+                السجل مُعطَّل. لا يُحفظ أي نص تكتبه هنا.
+            </p>
+            <button id="purgeStoredBtn" class="btn-secondary purge-btn" type="button"
+                    data-i18n="buttons.purgeStored" hidden>🧹 حذف البيانات المحفوظة سابقًا</button>
+            <div id="historyList" hidden>
+                <div id="historyContainer"></div>
+            </div>
         </div>
 
         <div class="footer">
-            <p id="footerText">تطبيق مصحح لوحة المفاتيح العربية v1.1</p>
+            <p id="footerText" data-i18n="labels.footer">تطبيق مصحح لوحة المفاتيح العربية v1.2</p>
         </div>
 
         <div id="srStatus" class="sr-only" role="status" aria-live="polite"></div>
     </main>
 
-    <script src="js/app.js" defer></script>
+    <script type="module" src="js/app.js"></script>
 </body>
 </html>

@@ -1,13 +1,18 @@
 {
   "name": "arabic-keyboard-fixer",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Client-side web app that fixes text typed on the wrong keyboard layout between Arabic and English.",
   "private": true,
   "scripts": {
-    "test": "node tests/converter.test.js"
+    "test": "node tests/converter.test.js",
+    "lint": "eslint ."
   },
   "license": "MIT",
   "engines": {
     "node": ">=18"
+  },
+  "type": "module",
+  "devDependencies": {
+    "eslint": "^9.0.0"
   }
 }

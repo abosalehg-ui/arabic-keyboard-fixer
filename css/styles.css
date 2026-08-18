@@ -1,3 +1,10 @@
+/*
+ * Direction note: this app flips `dir` at runtime when the UI language
+ * changes, so every side-specific rule uses logical properties
+ * (`inset-inline-*`, `border-inline-start`, `margin-inline-start`).
+ * Physical `left`/`right` here would point the wrong way in one language.
+ */
+
 :root,
 [data-theme="dark"] {
     --bg-gradient-from: #1e1e2e;
@@ -13,8 +20,16 @@
     --success-hover: #22c55e;
     --text-primary: #e0e0e0;
     --text-secondary: #b5b5c0;
-    --text-muted: #888a96;
+    /* 4.96:1 on --container-bg — #888a96 measured 3.94:1 and failed WCAG AA. */
+    --text-muted: #9a9caa;
+    --text-on-accent: #0b1020;
+    --text-on-success: #0b1020;
     --shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+
+    /* Latin first for the monospace look, then a face that actually carries
+       Arabic glyphs — 'Courier New' has none, so Arabic fell back per-system. */
+    --font-ui: 'Segoe UI', Tahoma, 'Noto Sans Arabic', Arial, sans-serif;
+    --font-mono: 'Courier New', 'Segoe UI', Tahoma, 'Noto Sans Arabic', monospace;
 }
 
 [data-theme="light"] {
@@ -27,11 +42,16 @@
     --border: #c8d0dc;
     --accent: #2563eb;
     --accent-hover: #1d4ed8;
-    --success: #16a34a;
-    --success-hover: #15803d;
+    /* White on #16a34a measured 3.30:1 and this green also carries the
+       suggestion text; darkened until both uses clear AA. */
+    --success: #12703a;
+    --success-hover: #0f5c30;
     --text-primary: #1a1a2e;
     --text-secondary: #4a4a5e;
-    --text-muted: #6b7280;
+    /* 4.97:1 on --panel-bg — #6b7280 measured 4.47:1 and missed AA. */
+    --text-muted: #636b78;
+    --text-on-accent: #ffffff;
+    --text-on-success: #ffffff;
     --shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
 }
 
@@ -42,7 +62,7 @@
 }
 
 body {
-    font-family: 'Segoe UI', 'Traditional Arabic', Arial, sans-serif;
+    font-family: var(--font-ui);
     background: linear-gradient(135deg, var(--bg-gradient-from) 0%, var(--bg-gradient-to) 100%);
     color: var(--text-primary);
     min-height: 100vh;
@@ -84,7 +104,7 @@ body {
 .header-actions {
     position: absolute;
     top: 0;
-    left: 0;
+    inset-inline-end: 0;
     display: flex;
     gap: 6px;
 }
@@ -98,8 +118,9 @@ body {
     font-size: 1.1em;
     cursor: pointer;
     line-height: 1;
-    min-width: 40px;
-    min-height: 40px;
+    /* WCAG 2.5.5 target size. */
+    min-width: 44px;
+    min-height: 44px;
 }
 
 .icon-btn:hover {
@@ -115,7 +136,7 @@ body {
     font-size: 0.85em;
     padding: 8px 12px;
     font-weight: 600;
-    min-width: auto;
+    min-width: 44px;
 }
 
 .status-indicator {
@@ -124,7 +145,7 @@ body {
     height: 12px;
     border-radius: 50%;
     background: var(--success);
-    margin-left: 8px;
+    margin-inline-start: 8px;
     animation: pulse 2s infinite;
 }
 
@@ -152,7 +173,7 @@ textarea {
     border-radius: 8px;
     background: var(--panel-bg);
     color: var(--text-primary);
-    font-family: 'Courier New', monospace;
+    font-family: var(--font-mono);
     font-size: 1em;
     resize: vertical;
     transition: border-color 0.3s;
@@ -167,6 +188,16 @@ textarea:focus {
     font-size: 0.85em;
     color: var(--text-muted);
     margin-top: 5px;
+}
+
+.length-warning {
+    margin-top: 8px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--accent);
+    background: var(--panel-bg-elevated);
+    color: var(--text-primary);
+    font-size: 0.85em;
 }
 
 .suggestions-section {
@@ -188,7 +219,7 @@ textarea:focus {
 
 .suggestion-item {
     background: var(--panel-bg-elevated);
-    border-right: 4px solid var(--accent);
+    border-inline-start: 4px solid var(--accent);
     padding: 15px;
     margin-bottom: 12px;
     border-radius: 4px;
@@ -211,7 +242,7 @@ textarea:focus {
 }
 
 .suggestion-content {
-    font-family: 'Courier New', monospace;
+    font-family: var(--font-mono);
     font-size: 1.1em;
     color: var(--success);
     word-break: break-word;
@@ -248,22 +279,29 @@ button:focus-visible {
     outline-offset: 2px;
 }
 
-.btn-fix {
-    background: var(--success);
-    color: #0b1020;
+button[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
-.btn-fix:hover {
+.btn-fix {
+    background: var(--success);
+    color: var(--text-on-success);
+}
+
+.btn-fix:hover:not([disabled]) {
     background: var(--success-hover);
     transform: translateY(-2px);
 }
 
 .btn-copy {
     background: var(--accent);
-    color: white;
+    /* White on the dark accent measured 3.29:1; this token keeps it above AA
+       in both themes. */
+    color: var(--text-on-accent);
 }
 
-.btn-copy:hover {
+.btn-copy:hover:not([disabled]) {
     background: var(--accent-hover);
     transform: translateY(-2px);
 }
@@ -274,7 +312,7 @@ button:focus-visible {
     border: 1px solid var(--border);
 }
 
-.btn-secondary:hover {
+.btn-secondary:hover:not([disabled]) {
     background: var(--panel-bg-hover);
 }
 
@@ -327,12 +365,48 @@ button:focus-visible {
 
 .history-controls {
     display: flex;
-    gap: 6px;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
 .history-controls button {
-    padding: 6px 12px;
+    padding: 6px 14px;
     font-size: 0.8em;
+    /* Full 44px target everywhere, not only under the mobile breakpoint. */
+    min-height: 44px;
+}
+
+.history-switch {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+    min-height: 44px;
+}
+
+.history-switch input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+.history-notice {
+    font-size: 0.85em;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+.purge-btn {
+    margin-top: 10px;
+    padding: 6px 14px;
+    font-size: 0.8em;
+    min-height: 44px;
 }
 
 .history-item {
@@ -342,7 +416,7 @@ button:focus-visible {
     margin-bottom: 8px;
     font-size: 0.9em;
     color: var(--text-secondary);
-    border-right: 3px solid var(--accent);
+    border-inline-start: 3px solid var(--accent);
     cursor: pointer;
     transition: background 0.3s;
 }
@@ -357,6 +431,7 @@ button:focus-visible {
     font-size: 0.8em;
     color: var(--text-muted);
     margin-top: 8px;
+    /* Deliberately physical: key names read left-to-right in every language. */
     text-align: left;
     direction: ltr;
 }
@@ -366,15 +441,28 @@ button:focus-visible {
     border: 1px solid var(--border);
     border-radius: 3px;
     padding: 1px 5px;
-    font-family: 'Courier New', monospace;
+    font-family: var(--font-mono);
     font-size: 0.9em;
 }
 
-.toast {
+.toast-stack {
     position: fixed;
     bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%) translateY(10px);
+    inset-inline-start: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: center;
+    gap: 8px;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+.toast {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transform: translateY(10px);
     background: var(--panel-bg-elevated);
     color: var(--text-primary);
     padding: 12px 20px;
@@ -384,13 +472,24 @@ button:focus-visible {
     font-size: 0.95em;
     opacity: 0;
     transition: opacity 0.2s ease, transform 0.2s ease;
-    z-index: 9999;
-    pointer-events: none;
+    max-width: min(90vw, 480px);
 }
 
 .toast-visible {
     opacity: 1;
-    transform: translateX(-50%) translateY(0);
+    transform: translateY(0);
+}
+
+.toast-actionable {
+    pointer-events: auto;
+}
+
+.toast-action {
+    padding: 4px 12px;
+    font-size: 0.9em;
+    background: var(--accent);
+    color: var(--text-on-accent);
+    border-radius: 6px;
 }
 
 @media (max-width: 600px) {
@@ -425,10 +524,6 @@ button:focus-visible {
         min-height: 44px;
     }
 
-    .history-controls button {
-        min-height: 40px;
-    }
-
     .icon-btn {
         flex: 0 0 auto;
     }
@@ -457,9 +552,9 @@ button:focus-visible {
 .skip-link {
     position: absolute;
     top: -100px;
-    right: 12px;
+    inset-inline-start: 12px;
     background: var(--accent);
-    color: white;
+    color: var(--text-on-accent);
     padding: 8px 14px;
     border-radius: 6px;
     text-decoration: none;

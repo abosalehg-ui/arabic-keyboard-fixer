@@ -9,10 +9,10 @@
   "labels.suggestions": "💡 Suggestions",
   "labels.history": "📝 History",
   "labels.historyToggle": "Save history",
-  "labels.historyNotice": "History is off — nothing you type here is stored. Turn it on and the last 20 corrections are kept in your browser only, and cleared automatically after 24 hours. Do not paste passwords.",
+  "labels.historyNotice": "History is off — nothing you type here is stored. Turn it on and the last 20 corrections are kept in your browser only; anything older than 24 hours is deleted the next time you open the app (not while it is closed). Do not paste passwords.",
   "labels.keyboardInfoTitle": "ℹ️ Note:",
-  "labels.keyboardInfoBody": "Both the base and Shift layers of the Arabic 101 layout are supported, and mistyped words are detected one word at a time. The Arabic 102 layout is temporarily disabled until its table is verified.",
-  "labels.footer": "Arabic Keyboard Fixer v1.2 | Runs entirely in your browser — no data leaves the page.",
+  "labels.keyboardInfoBody": "Both the base and Shift layers of the Arabic 101 layout are supported, and mistyped words are detected one word at a time. The Arabic 102 layout is not supported until its table is rebuilt from an authoritative source.",
+  "labels.footer": "Arabic Keyboard Fixer v{version} | Runs entirely in your browser — no data leaves the page.",
   "placeholder.input": "Example: g]d la;gm td hg;jhfm fg,pm hglthjdp (Arabic text typed on an English layout)",
   "buttons.swap": "Toggle direction manually",
   "buttons.theme": "Toggle theme",
@@ -44,7 +44,7 @@
   "messages.undone": "↩ Undone",
   "messages.cleared": "🗑️ History cleared",
   "messages.inputCleared": "🗑️ Input cleared",
-  "messages.historyOn": "History on — it will be saved in your browser",
+  "messages.historyOn": "History on — saved in your browser; entries older than 24 hours are deleted on your next visit",
   "messages.historyOff": "History off, and anything stored was deleted",
   "messages.storedPurged": "🧹 Stored data deleted",
   "messages.swappedToEn": "⇄ Converted to English",
@@ -61,6 +61,6 @@
   "suggestion.whole": "whole text",
   "suggestion.partial": "{changed} of {total} words",
   "suggestion.type.arabic101": "Convert to Arabic (101)",
-  "suggestion.type.arabic102": "Convert to Arabic (102)",
-  "suggestion.type.english": "Convert to English"
+  "suggestion.type.english": "Convert to English",
+  "suggestion.lowConfidence": "long shot"
 }

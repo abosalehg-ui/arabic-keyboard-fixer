@@ -92,9 +92,11 @@ git checkout -b docs/your-documentation
 - `js/app.js` - طبقة الواجهة فقط: الأحداث، العرض، السجل، السمات، i18n
 - `css/styles.css` - كل التنسيقات (متغيرات CSS للوضع الليلي/الفاتح)
 - `locales/ar.json` و `locales/en.json` - نصوص الواجهة (لا تكتب نصوصاً ثابتة داخل الكود)
-- `service-worker.js` - التخزين المؤقت للعمل دون اتصال (زِد `CACHE` عند تغيير الأصول)
+- `js/version.js` - المصدر الوحيد لرقم الإصدار. عند الإصدار غيّره هنا وفي `package.json` (اختبار يتحقق من تطابقهما)؛ اسم كاش service worker يُشتق منه تلقائيًا
+- `service-worker.js` - التخزين المؤقت للعمل دون اتصال (أضف أي ملف أصول جديد إلى `ASSETS`)
 - `tests/converter.test.js` - اختبارات الوحدة بدون تبعيات (تستورد `converter.js` مباشرةً)
-- `eslint.config.js` - قواعد الفحص؛ ESLint هو التبعية التطويرية الوحيدة، والتطبيق نفسه بلا أي تبعية
+- `tests/e2e/` - اختبارات المتصفح بـ Playwright لمسارات الواجهة (تطبيق، تراجع، سجل، اختصارات)
+- `eslint.config.js` - قواعد الفحص؛ ESLint و Playwright تبعيتا تطوير فقط، والتطبيق نفسه بلا أي تبعية
 - `README.md` / `CONTRIBUTING.md` - التوثيق
 
 > المشروع لا يحتاج أي بناء (build)، والتطبيق المنشور بلا أي تبعية. عند تعديل نصوص الواجهة، حدّث **كلا** ملفي `ar.json` و `en.json`.
@@ -112,8 +114,10 @@ git checkout -b docs/your-documentation
 
 ```bash
 # 1) شغّل اختبارات الوحدة والفحص (يعملان تلقائياً في CI أيضاً)
+npm ci
 npm test
-npm install && npm run lint
+npm run lint
+npm run test:e2e   # أول مرة: npx playwright install chromium
 
 # 2) شغّل خادم HTTP محلي لاختبار الواجهة كاملةً
 #    (مطلوب حتى يعمل service worker و fetch لملفات locales)

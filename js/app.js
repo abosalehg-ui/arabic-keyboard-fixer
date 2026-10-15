@@ -4,6 +4,7 @@ import {
     detectAndFix,
     forcedDirection
 } from './converter.js';
+import { VERSION } from './version.js';
 
 /* ------------------------------------------------------------------ *
  * Elements and constants
@@ -36,6 +37,8 @@ const PREVIEW_LIMIT = 500;
 /** Saved corrections are forgotten after a day even when history is on. */
 const HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
 const UNDO_TIMEOUT_MS = 6000;
+/** Below this the suggestion is still shown, but styled as a long shot. */
+const LOW_CONFIDENCE = 50;
 
 const SUPPORTED_LOCALES = ['ar', 'en'];
 let currentLocale = 'ar';
@@ -43,6 +46,8 @@ let strings = {};
 
 /** The suggestions currently on screen — the single source of truth for Apply. */
 let currentSuggestions = null;
+/** The input value `currentSuggestions` was computed from. */
+let detectedText = null;
 
 /* ------------------------------------------------------------------ *
  * i18n
@@ -86,7 +91,7 @@ function applyStaticStrings() {
     document.title = t('meta.pageTitle');
 
     for (const node of document.querySelectorAll('[data-i18n]')) {
-        node.textContent = t(node.dataset.i18n);
+        node.textContent = t(node.dataset.i18n, { version: VERSION });
     }
     for (const node of document.querySelectorAll('[data-i18n-title]')) {
         node.setAttribute('title', t(node.dataset.i18nTitle));
@@ -226,6 +231,24 @@ function showToast(message, action) {
     const timer = setTimeout(dismiss, action ? UNDO_TIMEOUT_MS : 1800);
 }
 
+/**
+ * Every destructive action follows the same shape: do it, then offer a toast
+ * that puts things back. `restore` undoes the action; `undoneKey` optionally
+ * confirms the undo with a second toast.
+ * @param {string} messageKey
+ * @param {() => void} restore
+ * @param {string} [undoneKey]
+ */
+function withUndo(messageKey, restore, undoneKey) {
+    showToast(t(messageKey), {
+        label: t('buttons.undo'),
+        onAction: () => {
+            restore();
+            if (undoneKey) showToast(t(undoneKey));
+        }
+    });
+}
+
 /* ------------------------------------------------------------------ *
  * History — opt-in, expiring, and never silently collected
  * ------------------------------------------------------------------ */
@@ -283,16 +306,32 @@ function setHistoryEnabled(enabled) {
     renderHistory();
 }
 
+/**
+ * Record a correction. Returns the stored entry (or null) so an undo can take
+ * back exactly the entry it created.
+ */
 function addToHistory(original, fixed) {
-    if (!historyEnabled || original === fixed) return;
+    if (!historyEnabled || original === fixed) return null;
     const timeLocale = currentLocale === 'ar' ? 'ar-SA-u-nu-latn' : 'en-US';
-    history.unshift({
+    const entry = {
         original,
         fixed,
         time: new Date().toLocaleTimeString(timeLocale),
         savedAt: Date.now()
-    });
+    };
+    history.unshift(entry);
     if (history.length > MAX_HISTORY) history.length = MAX_HISTORY;
+    saveHistory();
+    renderHistory();
+    return entry;
+}
+
+/** Forget one entry — used when the user undoes the change that created it. */
+function removeFromHistory(entry) {
+    if (!entry) return;
+    const index = history.indexOf(entry);
+    if (index === -1) return;
+    history.splice(index, 1);
     saveHistory();
     renderHistory();
 }
@@ -325,7 +364,6 @@ function buildHistoryItem(item) {
 function renderHistory() {
     if (historyToggle) {
         historyToggle.checked = historyEnabled;
-        historyToggle.setAttribute('aria-checked', String(historyEnabled));
     }
     if (historyNotice) historyNotice.hidden = historyEnabled;
     if (historyList) historyList.hidden = !historyEnabled;
@@ -376,11 +414,15 @@ function buildSuggestionItem(suggestion) {
         ? t('suggestion.partial', { changed: suggestion.changedWords, total: suggestion.totalWords })
         : t('suggestion.whole');
 
-    return el('div', { className: 'suggestion-item' },
+    const lowConfidence = suggestion.confidence < LOW_CONFIDENCE;
+    const confidenceText = t('suggestion.confidence', { n: suggestion.confidence }) +
+        (lowConfidence ? ' · ' + t('suggestion.lowConfidence') : '') + ' · ' + scope;
+
+    return el('div', { className: lowConfidence ? 'suggestion-item low-confidence' : 'suggestion-item' },
         el('div', { className: 'suggestion-text' },
             el('div', { className: 'suggestion-type', text: label }),
             el('div', { className: 'suggestion-content', dir: 'auto', text: preview }),
-            el('div', { className: 'confidence', text: t('suggestion.confidence', { n: suggestion.confidence }) + ' · ' + scope })
+            el('div', { className: 'confidence', text: confidenceText })
         ),
         el('div', { className: 'suggestion-actions' },
             el('button', {
@@ -430,14 +472,22 @@ function announceSuggestions(suggestions) {
 function applySuggestion(suggestion) {
     const previous = textInput.value;
     setInputValue(suggestion.text);
-    addToHistory(previous, suggestion.text);
-    showToast(t('messages.applied'), {
-        label: t('buttons.undo'),
-        onAction: () => {
-            setInputValue(previous);
-            showToast(t('messages.undone'));
-        }
-    });
+    const entry = addToHistory(previous, suggestion.text);
+    withUndo('messages.applied', () => {
+        setInputValue(previous);
+        removeFromHistory(entry);
+    }, 'messages.undone');
+}
+
+/**
+ * The suggestions for the text that is in the field right now. The on-screen
+ * list trails typing by the debounce delay, so a shortcut pressed straight
+ * after a keystroke would otherwise act on the previous text and drop the
+ * newest characters.
+ */
+function freshSuggestions() {
+    if (detectedText !== textInput.value) detectInput();
+    return currentSuggestions;
 }
 
 function copyText(text) {
@@ -476,6 +526,7 @@ function setInputValue(value) {
 function detectInput() {
     try {
         const value = textInput.value;
+        detectedText = value;
         charCountSpan.textContent = value.length;
 
         // Over the cap we stop analysing, but we do not touch the text. The old
@@ -551,13 +602,10 @@ clearHistoryBtn.addEventListener('click', () => {
     history = [];
     saveHistory();
     renderHistory();
-    showToast(t('messages.cleared'), {
-        label: t('buttons.undo'),
-        onAction: () => {
-            history = removed;
-            saveHistory();
-            renderHistory();
-        }
+    withUndo('messages.cleared', () => {
+        history = removed;
+        saveHistory();
+        renderHistory();
     });
 });
 
@@ -590,10 +638,10 @@ swapDirectionBtn.addEventListener('click', () => {
     const direction = forcedDirection(text);
     const converted = direction === 'toEnglish' ? convertToEnglish(text) : convertToArabic(text);
     setInputValue(converted);
-    addToHistory(text, converted);
-    showToast(t(direction === 'toEnglish' ? 'messages.swappedToEn' : 'messages.swappedToAr'), {
-        label: t('buttons.undo'),
-        onAction: () => setInputValue(text)
+    const entry = addToHistory(text, converted);
+    withUndo(direction === 'toEnglish' ? 'messages.swappedToEn' : 'messages.swappedToAr', () => {
+        setInputValue(text);
+        removeFromHistory(entry);
     });
 });
 
@@ -620,9 +668,10 @@ if (languageToggleBtn) {
  */
 document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && !e.altKey && e.code === 'Enter') {
-        if (currentSuggestions && currentSuggestions[0]) {
+        const suggestions = freshSuggestions();
+        if (suggestions && suggestions[0]) {
             e.preventDefault();
-            applySuggestion(currentSuggestions[0]);
+            applySuggestion(suggestions[0]);
         }
         return;
     }
@@ -633,14 +682,12 @@ document.addEventListener('keydown', (e) => {
         if (!previous) return;
         setInputValue('');
         textInput.focus();
-        showToast(t('messages.inputCleared'), {
-            label: t('buttons.undo'),
-            onAction: () => setInputValue(previous)
-        });
+        withUndo('messages.inputCleared', () => setInputValue(previous));
     } else if (e.code === 'KeyC') {
-        if (currentSuggestions && currentSuggestions[0]) {
+        const suggestions = freshSuggestions();
+        if (suggestions && suggestions[0]) {
             e.preventDefault();
-            copyText(currentSuggestions[0].text);
+            copyText(suggestions[0].text);
         }
     }
 });
@@ -681,6 +728,8 @@ function initHistory() {
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js').catch(() => {});
+        // The version in the URL makes every release a new worker, which in turn
+        // names its cache after the version — no hand-bumped cache key.
+        navigator.serviceWorker.register('service-worker.js?v=' + encodeURIComponent(VERSION)).catch(() => {});
     });
 }

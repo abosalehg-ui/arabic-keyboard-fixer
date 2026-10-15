@@ -13,10 +13,17 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
+          cache: npm
+      - name: Install (from lockfile)
+        run: npm ci --no-audit --no-fund
+      - name: Lint
+        run: npm run lint
       - name: Run converter tests
         run: npm test
-      - name: Install lint tooling
-        run: npm install --no-audit --no-fund --no-save eslint@9
-      - name: Lint
-        run: npx eslint .
+      - name: Install Chromium for browser tests
+        run: npx playwright install --with-deps chromium
+      - name: Run browser tests
+        run: npm run test:e2e
+        env:
+          CI: 'true'

@@ -10,8 +10,6 @@
 import {
     qwertyToArabic101,
     qwertyShiftToArabic101,
-    qwertyToArabic102,
-    ENABLE_102,
     convertToArabic,
     convertToEnglish,
     arabicScore,
@@ -19,6 +17,8 @@ import {
     detectAndFix,
     forcedDirection
 } from '../js/converter.js';
+import { VERSION } from '../js/version.js';
+import { readFileSync } from 'node:fs';
 
 const results = [];
 function record(name, fn) {
@@ -62,18 +62,11 @@ record('ظ is on the base layer and ؟ on the Shift layer', () =>
 record('hamza forms أ إ آ are reachable via Shift', () =>
     convertToArabic('H') === 'أ' && convertToArabic('Y') === 'إ' && convertToArabic('N') === 'آ');
 
-record('Arabic 102 is either disabled or structurally sound', () => {
-    if (!ENABLE_102) return true;
-    const { duplicates, unreachable } = layoutProblems(qwertyToArabic102);
-    if (duplicates.length || unreachable.length) {
-        throw new Error('102 enabled but broken — duplicated: [' + duplicates.join(' ') +
-            '] unreachable: [' + unreachable.join(' ') + ']');
-    }
-    return true;
-});
+record('Arabic punctuation on the Shift layer converts both ways', () =>
+    convertToArabic('P') === '؛' && convertToEnglish('؛') === 'P' &&
+    convertToArabic('I') === '÷' && convertToArabic('O') === '×' && convertToArabic('U') === '‘');
 
-record('no suggestion claims the 102 layout while it is disabled', () => {
-    if (ENABLE_102) return true;
+record('no suggestion ever claims the unverified 102 layout', () => {
     const r = detectAndFix('g]d la;gm') || [];
     return r.every(s => s.typeKey !== 'arabic102');
 });
@@ -155,6 +148,25 @@ record('leaves ordinary English alone', () =>
      'ERROR: connection refused by remote host', 'SELECT * FROM users WHERE id = 1']
         .every(t => detectAndFix(t) === null));
 
+record('two words, one correct: only the mistyped one is converted', () => {
+    const cases = [
+        ['شكرا اثممخ', 'شكرا hello'],
+        ['مرحبا اثممخ', 'مرحبا hello'],
+        ['hello g]d', 'hello لدي']
+    ];
+    for (const [input, expected] of cases) {
+        const r = detectAndFix(input);
+        if (!r || r[0].text !== expected) {
+            throw new Error(input + ' -> ' + (r ? r[0].text : 'null') + ', expected ' + expected);
+        }
+    }
+    return true;
+});
+
+record('short all-caps acronyms are not converted to Arabic', () =>
+    ['PDF', 'SMS', 'API', 'send the PDF.']
+        .every(t => (detectAndFix(t) || []).every(s => s.typeKey !== 'arabic101')));
+
 record('detectAndFix on empty or blank input returns null', () =>
     detectAndFix('') === null && detectAndFix('   ') === null);
 
@@ -192,6 +204,14 @@ record('handles the 50k character cap in under a second', () => {
     detectAndFix(big);
     const elapsed = Date.now() - started;
     if (elapsed > 1000) throw new Error('took ' + elapsed + 'ms');
+    return true;
+});
+
+/* --- release metadata ---------------------------------------------- */
+
+record('package.json version matches js/version.js', () => {
+    const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+    if (pkg.version !== VERSION) throw new Error('package.json ' + pkg.version + ' vs js/version.js ' + VERSION);
     return true;
 });
 

@@ -9,10 +9,10 @@
   "labels.suggestions": "💡 الاقتراحات والإصلاحات",
   "labels.history": "📝 السجل",
   "labels.historyToggle": "حفظ السجل",
-  "labels.historyNotice": "السجل مُعطَّل — لا يُحفظ أي نص تكتبه هنا. عند تفعيله يُحفظ آخر ٢٠ تصحيحًا في متصفحك فقط ويُمسح تلقائيًا بعد ٢٤ ساعة. لا تلصق كلمات مرور.",
+  "labels.historyNotice": "السجل مُعطَّل — لا يُحفظ أي نص تكتبه هنا. عند تفعيله يُحفظ آخر ٢٠ تصحيحًا في متصفحك فقط، وما مضى عليه ٢٤ ساعة يُحذف عند فتحك للتطبيق بعدها (لا يُحذف والتطبيق مغلق). لا تلصق كلمات مرور.",
   "labels.keyboardInfoTitle": "ℹ️ معلومة:",
-  "labels.keyboardInfoBody": "التطبيق يدعم تخطيط Arabic 101 بطبقتيه الأساسية والمزاحة (Shift)، ويكتشف الكلمات المكتوبة بتخطيط خاطئ كلمةً كلمة. تخطيط Arabic 102 معطَّل مؤقتًا حتى يُتحقق من جدوله.",
-  "labels.footer": "تطبيق مصحح لوحة المفاتيح العربية v1.2 | يعمل بالكامل في المتصفح، بدون إرسال بيانات",
+  "labels.keyboardInfoBody": "التطبيق يدعم تخطيط Arabic 101 بطبقتيه الأساسية والمزاحة (Shift)، ويكتشف الكلمات المكتوبة بتخطيط خاطئ كلمةً كلمة. تخطيط Arabic 102 غير مدعوم حاليًا حتى يُعاد بناء جدوله من مرجع موثّق.",
+  "labels.footer": "تطبيق مصحح لوحة المفاتيح العربية v{version} | يعمل بالكامل في المتصفح، بدون إرسال بيانات",
   "placeholder.input": "مثال: g]d la;gm td hg;jhfm fg,pm hglthjdp (هذا نص عربي على لوحة إنجليزية)",
   "buttons.swap": "تبديل الاتجاه يدوياً",
   "buttons.theme": "تبديل المظهر",
@@ -44,7 +44,7 @@
   "messages.undone": "↩ تم التراجع",
   "messages.cleared": "🗑️ تم مسح السجل",
   "messages.inputCleared": "🗑️ تم مسح الإدخال",
-  "messages.historyOn": "السجل مُفعَّل — سيُحفظ في متصفحك",
+  "messages.historyOn": "السجل مُفعَّل — يُحفظ في متصفحك، وما يتجاوز ٢٤ ساعة يُحذف في زيارتك التالية",
   "messages.historyOff": "السجل مُعطَّل وحُذف ما كان محفوظًا",
   "messages.storedPurged": "🧹 تم حذف البيانات المحفوظة",
   "messages.swappedToEn": "⇄ حُوّل إلى إنجليزي",
@@ -61,6 +61,6 @@
   "suggestion.whole": "النص كامل",
   "suggestion.partial": "{changed} من {total} كلمة",
   "suggestion.type.arabic101": "تحويل إلى عربي (101)",
-  "suggestion.type.arabic102": "تحويل إلى عربي (102)",
-  "suggestion.type.english": "تحويل إلى إنجليزي"
+  "suggestion.type.english": "تحويل إلى إنجليزي",
+  "suggestion.lowConfidence": "احتمال ضعيف"
 }

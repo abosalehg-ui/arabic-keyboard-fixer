@@ -1,10 +1,13 @@
-const CACHE = 'akf-v5';
+/** Set by the page at registration (`?v=` from js/version.js); see app.js. */
+const VERSION = new URL(self.location.href).searchParams.get('v') || 'dev';
+const CACHE = 'akf-' + VERSION;
 const ASSETS = [
     './',
     './index.html',
     './css/styles.css',
     './js/app.js',
     './js/converter.js',
+    './js/version.js',
     './manifest.webmanifest',
     './locales/ar.json',
     './locales/en.json'

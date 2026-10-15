@@ -25,36 +25,26 @@ export const qwertyToArabic101 = {
  * Arabic (101) Shift layer, keyed by the character a US layout produces when
  * the same physical key is pressed with Shift. Without this layer the letters
  * أ إ آ (and the lam-alef ligatures) are unreachable.
+ *
+ * Shift keys that print ASCII punctuation on the Arabic layout (D → `]`,
+ * L → `/`, …) are deliberately absent: mapping them would turn uppercase
+ * Latin letters into brackets. Only Arabic-specific output is listed.
  */
 export const qwertyShiftToArabic101 = {
     'H': 'أ', 'Y': 'إ', 'N': 'آ',
     'G': 'لأ', 'T': 'لإ', 'B': 'لآ',
     'J': 'ـ', '?': '؟', 'K': '،',
+    'P': '؛', 'I': '÷', 'O': '×', 'U': '‘',
     'Q': 'َ', 'W': 'ً', 'E': 'ُ', 'R': 'ٌ', 'A': 'ِ', 'S': 'ٍ', 'X': 'ْ', '~': 'ّ'
 };
 
-/**
- * Arabic (102) — QUARANTINED, see ENABLE_102 below.
- *
- * This table is provably wrong and is kept only so the fix has a starting
- * point: `و` and `ز` are each produced by two different keys while `ث` and `ح`
- * are produced by none. No real keyboard layout looks like that. The symbol row
- * (`,` `.` `/`) was evidently copied from the 101 table without adaptation.
- *
- * Do not re-enable until every row has been checked against an authoritative
- * source (Microsoft MSKLC / the Windows "Arabic (102)" layout documentation);
- * `assertLayoutIsSane()` in the test suite enforces this the moment the flag
- * flips back to true.
+/*
+ * Arabic (102) is not offered. The table this project used to ship was
+ * structurally broken (two keys printing و and ز, none printing ث and ح), so it
+ * now lives in `tests/fixtures/arabic102-unverified.js` as a starting point and
+ * is not loaded by the app. Re-add it here only once every row has been checked
+ * against Microsoft's layout data and it passes `layoutProblems()` in the tests.
  */
-export const qwertyToArabic102 = {
-    'q': 'ف', 'w': 'ك', 'e': 'ج', 'r': 'د', 't': 'ش', 'y': 'غ', 'u': 'س', 'i': 'ا', 'o': 'ي', 'p': 'ب', '[': 'ص', ']': 'ض',
-    'a': 'ل', 's': 'م', 'd': 'ن', 'f': 'ت', 'g': 'ة', 'h': 'خ', 'j': 'ه', 'k': 'ع', 'l': 'ق', ';': 'ط', "'": 'و',
-    'z': 'ئ', 'x': 'ء', 'c': 'ؤ', 'v': 'ر', 'b': 'لا', 'n': 'ى', 'm': 'ز', ',': 'و', '.': 'ز', '/': '؟',
-    '`': 'ذ'
-};
-
-/** Offering a suggestion built from an unverified table is worse than offering none. */
-export const ENABLE_102 = false;
 
 /* ------------------------------------------------------------------ *
  * Reverse mapping (Arabic → QWERTY)
@@ -251,6 +241,12 @@ const SWEEP_RATIO = 0.5;
  * `id` rewritten to the Arabic pronoun هي at full confidence.
  */
 const MIN_PARTIAL_LENGTH = 3;
+/**
+ * A short all-caps Latin word ("PDF", "SMS", "API") is an acronym, not Arabic
+ * typed on the wrong layout: Caps Lock does not change what an Arabic layout
+ * prints, so a mistyped Arabic word never arrives in capitals.
+ */
+const ACRONYM = /^[A-Z]{2,5}\p{P}*$/u;
 
 /**
  * Evaluate one whitespace-delimited token for one direction.
@@ -297,7 +293,11 @@ function buildSuggestion(text, typeKey, convert, scoreTarget, scoreSource) {
 
     let applied;
     if (sweep) {
-        applied = convertible;
+        // Sweep the rest of the line, but never a word that already reads as
+        // its own language. With two words, one accepted conversion is enough
+        // to reach SWEEP_RATIO, and without this guard "شكرا اثممخ" became
+        // "a;vh hello" — the correct word was destroyed along with the fix.
+        applied = convertible.filter(r => r.accepted || scoreSource(r.token) < MIN_SCORE);
     } else {
         const documentScore = scoreSource(text);
         applied = accepted.filter(r =>
@@ -348,19 +348,9 @@ export function detectAndFix(text) {
 
     const toArabic101 = buildSuggestion(
         text, 'arabic101',
-        token => convertToArabic(token, qwertyToArabic101, qwertyShiftToArabic101),
+        token => (ACRONYM.test(token) ? token : convertToArabic(token)),
         arabicScore, englishScore);
     if (toArabic101) suggestions.push(toArabic101);
-
-    if (ENABLE_102) {
-        const toArabic102 = buildSuggestion(
-            text, 'arabic102',
-            token => convertToArabic(token, qwertyToArabic102, null),
-            arabicScore, englishScore);
-        if (toArabic102 && (!toArabic101 || toArabic102.text !== toArabic101.text)) {
-            suggestions.push(toArabic102);
-        }
-    }
 
     const toEnglish = buildSuggestion(
         text, 'english', convertToEnglish, englishScore, arabicScore);
